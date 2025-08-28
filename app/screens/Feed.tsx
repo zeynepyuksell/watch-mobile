@@ -12,132 +12,60 @@ import {
   Image,
   TextInput,
 } from "react-native";
-import { getProducts, Product } from "../api/products";
+import ProductDetail from "./Detail";
+import {
+  getProducts,
+  getPopularBrands,
+  getTrendingBrands,
+  getBrandImages,
+  Product,
+} from "../api/products";
 import Button from "../components/ui/Button";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 
 const { width } = Dimensions.get("window");
 const CARD_WIDTH = (width - 56) / 2;
 
-const popularBrands = [
-  {
-    id: "1",
-    name: "Rolex",
-    logo: "https://logos-world.net/wp-content/uploads/2020/12/Rolex-Logo.png",
-  },
-  {
-    id: "2",
-    name: "Audemars Piguet",
-    logo: "https://logos-world.net/wp-content/uploads/2021/11/Audemars-Piguet-Logo.png",
-  },
-  {
-    id: "3",
-    name: "Patek Philippe",
-    logo: "https://logos-world.net/wp-content/uploads/2021/11/Patek-Philippe-Logo.png",
-  },
-  {
-    id: "4",
-    name: "Omega",
-    logo: "https://logos-world.net/wp-content/uploads/2020/12/Omega-Logo.png",
-  },
-  {
-    id: "5",
-    name: "Cartier",
-    logo: "https://logos-world.net/wp-content/uploads/2022/12/Cartier-Logo.png",
-  },
-];
-
-const trendingBrands = [
-  {
-    id: "1",
-    name: "Rolex",
-    image:
-      "https://cdn2.chrono24.com/images/uhren/22662738-3h6i8z4k6lzw0s7twg8s48wg-ExtraLarge.jpg",
-    count: "124 ürün",
-  },
-  {
-    id: "2",
-    name: "Audemars Piguet",
-    image:
-      "https://cdn2.chrono24.com/images/uhren/23456789-ab1c2d3e4f5g6h7i8j9k0l1m-ExtraLarge.jpg",
-    count: "98 ürün",
-  },
-  {
-    id: "3",
-    name: "Patek Philippe",
-    image:
-      "https://cdn2.chrono24.com/images/uhren/34567890-cd2e3f4g5h6i7j8k9l0m1n2o-ExtraLarge.jpg",
-    count: "76 ürün",
-  },
-  {
-    id: "4",
-    name: "Omega",
-    image:
-      "https://cdn2.chrono24.com/images/uhren/22334455-er5t6y7u8i9o0p1q2w3e4r5t-ExtraLarge.jpg",
-    count: "54 ürün",
-  },
-  {
-    id: "5",
-    name: "Cartier",
-    image:
-      "https://cdn2.chrono24.com/images/uhren/45678901-de3f4g5h6i7j8k9l0m1n2o3p-ExtraLarge.jpg",
-    count: "42 ürün",
-  },
-];
-
-const watchImages = {
-  Rolex: {
-    "Submariner Date 41":
-      "https://cdn2.chrono24.com/images/uhren/22662738-3h6i8z4k6lzw0s7twg8s48wg-ExtraLarge.jpg",
-    "Day-Date 40":
-      "https://cdn2.chrono24.com/images/uhren/25476552-gp8j2m6nz8y1t5x7i4w3l2qk-ExtraLarge.jpg",
-  },
-  Omega: {
-    "Seamaster Diver 300M":
-      "https://cdn2.chrono24.com/images/uhren/23423452-sd7f8g9h0j1k2l3m4n5o6p7q-ExtraLarge.jpg",
-    "Speedmaster Professional":
-      "https://cdn2.chrono24.com/images/uhren/22334455-er5t6y7u8i9o0p1q2w3e4r5t-ExtraLarge.jpg",
-  },
-  Audemars: {
-    "Royal Oak 15500ST":
-      "https://cdn2.chrono24.com/images/uhren/23456789-ab1c2d3e4f5g6h7i8j9k0l1m-ExtraLarge.jpg",
-  },
-  Patek: {
-    "Nautilus 5711/1A":
-      "https://cdn2.chrono24.com/images/uhren/34567890-cd2e3f4g5h6i7j8k9l0m1n2o-ExtraLarge.jpg",
-  },
-  Cartier: {
-    "Tank Louis Cartier":
-      "https://cdn2.chrono24.com/images/uhren/45678901-de3f4g5h6i7j8k9l0m1n2o3p-ExtraLarge.jpg",
-  },
-};
-
-const getRandomDate = () => {
-  const randomDays = Math.floor(Math.random() * 30);
-  const date = new Date();
-  date.setDate(date.getDate() - randomDays);
-  return date.toLocaleDateString("tr-TR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
-};
-
 export default function Feed() {
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState("");
   const [data, setData] = useState<Product[]>([]);
+  const [popularBrands, setPopularBrands] = useState<any[]>([]);
+  const [trendingBrands, setTrendingBrands] = useState<any[]>([]);
+  const [brandImages, setBrandImages] = useState<
+    Record<string, Record<string, string>>
+  >({});
   const [priceRange, setPriceRange] = useState([0, 5000000]);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
 
   const load = async () => {
     setLoading(true);
     try {
-      const res = await getProducts();
-      setData(res);
+      const [products, brands, trends, images] = await Promise.all([
+        getProducts(),
+        getPopularBrands(),
+        getTrendingBrands(),
+        getBrandImages(),
+      ]);
+      setData(products);
+      setPopularBrands(brands);
+      setTrendingBrands(trends);
+      setBrandImages(images);
     } finally {
       setLoading(false);
     }
+  };
+
+  const getRandomDate = () => {
+    const randomDays = Math.floor(Math.random() * 30);
+    const date = new Date();
+    date.setDate(date.getDate() - randomDays);
+    return date.toLocaleDateString("tr-TR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
   };
 
   useEffect(() => {
@@ -190,17 +118,18 @@ export default function Feed() {
 
   // Ürün kartı bileşeni
   const ProductCard = ({ item }: { item: Product }) => {
-    const imageUrl =
-      item.image ||
-      watchImages[item.brand]?.[item.model] ||
-      "https://via.placeholder.com/300x300.png?text=No+Image";
     const postedDate = getRandomDate();
+    // Rastgele görüntülenme sayısı üret (100-5000 arası)
+    const views = Math.floor(Math.random() * 4900) + 100;
 
     return (
-      <TouchableOpacity style={styles.productCard}>
+      <TouchableOpacity
+        style={styles.productCard}
+        onPress={() => setSelectedProductId(item.id)}
+      >
         <View style={styles.imageContainer}>
           <Image
-            source={{ uri: imageUrl }}
+            source={item.image}
             style={styles.productImage}
             resizeMode="cover"
           />
@@ -226,21 +155,26 @@ export default function Feed() {
               <Ionicons name="time-outline" size={14} color="#6b7280" />
               <Text style={styles.dateText}>{postedDate}</Text>
             </View>
+            <View style={styles.viewsContainer}>
+              <Ionicons name="eye-outline" size={14} color="#6b7280" />
+              <Text style={styles.viewsText}>
+                {views.toLocaleString("tr-TR")}
+              </Text>
+            </View>
           </View>
         </View>
       </TouchableOpacity>
     );
   };
 
-  // Trend marka kartı bileşeni
-  const TrendBrandCard = ({ item }: { item: (typeof trendingBrands)[0] }) => {
+  const TrendBrandCard = ({ item }: { item: any }) => {
     return (
       <TouchableOpacity
         style={styles.trendBrandCard}
         onPress={() => toggleBrand(item.name)}
       >
         <Image
-          source={{ uri: item.image }}
+          source={item.image}
           style={styles.trendBrandImage}
           resizeMode="cover"
         />
@@ -267,7 +201,7 @@ export default function Feed() {
                 style={styles.searchIcon}
               />
               <TextInput
-                placeholder="Marka, model veya özellik ara..."
+                placeholder="Search Watchcage"
                 placeholderTextColor="#6B7280"
                 value={query}
                 onChangeText={setQuery}
@@ -342,12 +276,6 @@ export default function Feed() {
         }
       >
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Popüler Markalar</Text>
-            <TouchableOpacity>
-              <Text style={styles.seeAll}>Tümünü Gör</Text>
-            </TouchableOpacity>
-          </View>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -380,9 +308,9 @@ export default function Feed() {
 
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Trend Markalar</Text>
+            <Text style={styles.sectionTitle}>Trending</Text>
             <TouchableOpacity>
-              <Text style={styles.seeAll}>Tümünü Gör</Text>
+              <Text style={styles.seeAll}>View All</Text>
             </TouchableOpacity>
           </View>
           <ScrollView
@@ -399,7 +327,7 @@ export default function Feed() {
 
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Fiyat Aralığı</Text>
+            <Text style={styles.sectionTitle}>Price Range</Text>
           </View>
           <ScrollView
             horizontal
@@ -434,8 +362,8 @@ export default function Feed() {
         </View>
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Saatler</Text>
-            <Text style={styles.productCount}>{filtered.length} ürün</Text>
+            <Text style={styles.sectionTitle}>New Arrivals</Text>
+            <Text style={styles.productCount}>{filtered.length} product</Text>
           </View>
 
           {filtered.length > 0 ? (
@@ -472,6 +400,14 @@ export default function Feed() {
           )}
         </View>
       </ScrollView>
+      {selectedProductId && (
+        <View style={styles.detailOverlay}>
+          <ProductDetail
+            productId={selectedProductId}
+            onClose={() => setSelectedProductId(null)}
+          />
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -484,16 +420,25 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
+  detailOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "#0D1118",
+    zIndex: 100,
+  },
   header: {
     backgroundColor: "#0D1118",
     paddingTop: 20,
-    paddingBottom: 24,
+    paddingBottom: 16,
     paddingHorizontal: 20,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
   },
   headerContent: {
-    gap: 20,
+    gap: 12, // Boşluğu azalttım
   },
   searchSection: {
     width: "100%",
@@ -518,11 +463,12 @@ const styles = StyleSheet.create({
     padding: 0,
   },
   activeFiltersContainer: {
-    marginTop: 4,
+    marginTop: 8, // Boşluğu azalttım
   },
   activeFiltersContent: {
     paddingRight: 20,
     gap: 8,
+    alignItems: "center",
   },
   activeFilterChip: {
     flexDirection: "row",
@@ -573,6 +519,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#6366f1",
     fontWeight: "500",
+    marginRight: 10,
   },
   productCount: {
     fontSize: 14,
@@ -741,6 +688,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   dateText: {
+    fontSize: 12,
+    color: "#9CA3AF",
+    marginLeft: 4,
+  },
+  viewsContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  viewsText: {
     fontSize: 12,
     color: "#9CA3AF",
     marginLeft: 4,
