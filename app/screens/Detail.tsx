@@ -31,7 +31,7 @@ const hoursData = Array.from({ length: 24 }, (_, i) => ({
   price: (1000 + i * 50) * (i % 3 === 0 ? 0.9 : 1), // Fiyat varyasyonu
   condition:
     i % 3 === 0 ? "Yeni" : i % 3 === 1 ? "Az Kullanılmış" : "Kullanılmış",
-  image: require("../assets/images/placeholder-watch.jpg"), // Gerçek uygulamada dinamik olacak
+  image: require("../../assets/mock-images/placeholder-watch.jpg"), // Gerçek uygulamada dinamik olacak
 }));
 
 type ProductDetailProps = {
