@@ -7,10 +7,10 @@ import {
   RefreshControl,
   TouchableOpacity,
   ScrollView,
-  Dimensions,
-  StyleSheet,
-  Image,
   TextInput,
+  Image,
+  ListRenderItem,
+  Modal,
 } from "react-native";
 import ProductDetail from "./Detail";
 import {
@@ -21,25 +21,75 @@ import {
   Product,
 } from "../api/products";
 import Button from "../components/ui/Button";
-import { Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { Ionicons, MaterialIcons, Feather } from "@expo/vector-icons";
+import FilterModal from "./FilterModal";
+import styles from "./Feed.styles";
+interface Brand {
+  id: string;
+  name: string;
+  count: string;
+  image?: any;
+}
 
-const { width } = Dimensions.get("window");
-const CARD_WIDTH = (width - 56) / 2;
+interface PriceRange {
+  label: string;
+  min: number;
+  max: number;
+}
 
-export default function Feed() {
-  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [query, setQuery] = useState("");
+interface Condition {
+  id: string;
+  label: string;
+  value: string;
+}
+
+interface Location {
+  id: string;
+  name: string;
+}
+
+const Feed: React.FC = () => {
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(
+    null
+  );
+  const [loading, setLoading] = useState<boolean>(false);
+  const [query, setQuery] = useState<string>("");
   const [data, setData] = useState<Product[]>([]);
-  const [popularBrands, setPopularBrands] = useState<any[]>([]);
-  const [trendingBrands, setTrendingBrands] = useState<any[]>([]);
+  const [popularBrands, setPopularBrands] = useState<Brand[]>([]);
+  const [trendingBrands, setTrendingBrands] = useState<Brand[]>([]);
   const [brandImages, setBrandImages] = useState<
     Record<string, Record<string, string>>
   >({});
-  const [priceRange, setPriceRange] = useState([0, 5000000]);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 150000]);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
+  const [selectedConditions, setSelectedConditions] = useState<string[]>([]);
+  const [selectedLocation, setSelectedLocation] = useState<string>("Worldwide");
+  const [showFilterModal, setShowFilterModal] = useState<boolean>(false);
 
-  const load = async () => {
+  const conditions: Condition[] = [
+    { id: "1", label: "New", value: "new" },
+    { id: "2", label: "Excellent", value: "excellent" },
+    { id: "3", label: "Very Good", value: "very good" },
+    { id: "4", label: "Good", value: "good" },
+  ];
+
+  const locations: Location[] = [
+    { id: "1", name: "Worldwide" },
+    { id: "2", name: "United States" },
+    { id: "3", name: "Europe" },
+    { id: "4", name: "Asia" },
+    { id: "5", name: "Turkey" },
+    { id: "6", name: "United Kingdom" },
+  ];
+
+  const priceRanges: PriceRange[] = [
+    { label: "0-50.000 TL", min: 0, max: 50000 },
+    { label: "50.000-100.000 TL", min: 50000, max: 100000 },
+    { label: "100.000-150.000 TL", min: 100000, max: 150000 },
+    { label: "100.000-500.000 TL", min: 100000, max: 5000000 },
+  ];
+
+  const load = async (): Promise<void> => {
     setLoading(true);
     try {
       const [products, brands, trends, images] = await Promise.all([
@@ -57,7 +107,7 @@ export default function Feed() {
     }
   };
 
-  const getRandomDate = () => {
+  const getRandomDate = (): string => {
     const randomDays = Math.floor(Math.random() * 30);
     const date = new Date();
     date.setDate(date.getDate() - randomDays);
@@ -72,18 +122,9 @@ export default function Feed() {
     load();
   }, []);
 
-  // Fiyat aralıkları
-  const priceRanges = [
-    { label: "0-200.000 TL", min: 0, max: 200000 },
-    { label: "200.000-500.000 TL", min: 200000, max: 500000 },
-    { label: "500.000-1.000.000 TL", min: 500000, max: 1000000 },
-    { label: "1.000.000+ TL", min: 1000000, max: 5000000 },
-  ];
-
   const filtered = useMemo(() => {
     let result = data;
 
-    // Arama filtresi
     if (query) {
       const q = query.toLowerCase();
       result = result.filter((p) =>
@@ -91,20 +132,35 @@ export default function Feed() {
       );
     }
 
-    // Fiyat filtresi
     result = result.filter(
       (p) => p.price >= priceRange[0] && p.price <= priceRange[1]
     );
 
-    // Marka filtresi
     if (selectedBrands.length > 0) {
       result = result.filter((p) => selectedBrands.includes(p.brand));
     }
 
-    return result;
-  }, [data, query, priceRange, selectedBrands]);
+    if (selectedConditions.length > 0) {
+      result = result.filter((p) =>
+        selectedConditions.includes(p.condition.toLowerCase())
+      );
+    }
 
-  const toggleBrand = (brand: string) => {
+    if (selectedLocation !== "Worldwide") {
+      result = result.filter((p) => p.location === selectedLocation);
+    }
+
+    return result;
+  }, [
+    data,
+    query,
+    priceRange,
+    selectedBrands,
+    selectedConditions,
+    selectedLocation,
+  ]);
+
+  const toggleBrand = (brand: string): void => {
     if (selectedBrands.includes(brand)) {
       setSelectedBrands(selectedBrands.filter((b) => b !== brand));
     } else {
@@ -112,14 +168,32 @@ export default function Feed() {
     }
   };
 
-  const selectPriceRange = (min: number, max: number) => {
+  const toggleCondition = (condition: string): void => {
+    if (selectedConditions.includes(condition)) {
+      setSelectedConditions(selectedConditions.filter((c) => c !== condition));
+    } else {
+      setSelectedConditions([...selectedConditions, condition]);
+    }
+  };
+
+  const selectLocation = (location: string): void => {
+    setSelectedLocation(location);
+  };
+
+  const selectPriceRange = (min: number, max: number): void => {
     setPriceRange([min, max]);
   };
 
-  // Ürün kartı bileşeni
-  const ProductCard = ({ item }: { item: Product }) => {
+  const resetFilters = (): void => {
+    setQuery("");
+    setPriceRange([0, 150000]);
+    setSelectedBrands([]);
+    setSelectedConditions([]);
+    setSelectedLocation("Worldwide");
+  };
+
+  const ProductCard: React.FC<{ item: Product }> = ({ item }) => {
     const postedDate = getRandomDate();
-    // Rastgele görüntülenme sayısı üret (100-5000 arası)
     const views = Math.floor(Math.random() * 4900) + 100;
 
     return (
@@ -144,12 +218,6 @@ export default function Feed() {
             {item.model}
           </Text>
 
-          <View style={styles.priceContainerCard}>
-            <Text style={styles.priceTextCard}>
-              {item.price.toLocaleString("tr-TR")} TL
-            </Text>
-          </View>
-
           <View style={styles.metaContainer}>
             <View style={styles.dateContainer}>
               <Ionicons name="time-outline" size={14} color="#6b7280" />
@@ -167,7 +235,7 @@ export default function Feed() {
     );
   };
 
-  const TrendBrandCard = ({ item }: { item: any }) => {
+  const TrendBrandCard: React.FC<{ item: Brand }> = ({ item }) => {
     return (
       <TouchableOpacity
         style={styles.trendBrandCard}
@@ -187,6 +255,84 @@ export default function Feed() {
       </TouchableOpacity>
     );
   };
+
+  const renderProductItem: ListRenderItem<Product> = ({ item }) => (
+    <View style={styles.cardWrapper}>
+      <ProductCard item={item} />
+    </View>
+  );
+
+  const hasActiveFilters =
+    selectedBrands.length > 0 ||
+    selectedConditions.length > 0 ||
+    query ||
+    priceRange[0] > 0 ||
+    priceRange[1] < 150000 ||
+    selectedLocation !== "Worldwide";
+
+  const ActiveFilters = () => (
+    <View style={styles.activeFiltersContainer}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.activeFiltersContent}
+      >
+        {query && (
+          <View style={styles.activeFilterChip}>
+            <Text style={styles.activeFilterText}>{query}</Text>
+            <TouchableOpacity onPress={() => setQuery("")}>
+              <Ionicons name="close" size={14} color="#6366F1" />
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {selectedBrands.map((brand) => (
+          <View key={brand} style={styles.activeFilterChip}>
+            <Text style={styles.activeFilterText}>{brand}</Text>
+            <TouchableOpacity onPress={() => toggleBrand(brand)}>
+              <Ionicons name="close" size={14} color="#6366F1" />
+            </TouchableOpacity>
+          </View>
+        ))}
+
+        {selectedConditions.map((condition) => (
+          <View key={condition} style={styles.activeFilterChip}>
+            <Text style={styles.activeFilterText}>
+              {conditions.find((c) => c.value === condition)?.label}
+            </Text>
+            <TouchableOpacity onPress={() => toggleCondition(condition)}>
+              <Ionicons name="close" size={14} color="#6366F1" />
+            </TouchableOpacity>
+          </View>
+        ))}
+
+        {(priceRange[0] > 0 || priceRange[1] < 150000) && (
+          <View style={styles.activeFilterChip}>
+            <Text style={styles.activeFilterText}>
+              {priceRange[0].toLocaleString()}-{priceRange[1].toLocaleString()}{" "}
+              TL
+            </Text>
+            <TouchableOpacity onPress={() => setPriceRange([0, 150000])}>
+              <Ionicons name="close" size={14} color="#6366F1" />
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {selectedLocation !== "Worldwide" && (
+          <View style={styles.activeFilterChip}>
+            <Text style={styles.activeFilterText}>{selectedLocation}</Text>
+            <TouchableOpacity onPress={() => setSelectedLocation("Worldwide")}>
+              <Ionicons name="close" size={14} color="#6366F1" />
+            </TouchableOpacity>
+          </View>
+        )}
+
+        <TouchableOpacity style={styles.clearAllButton} onPress={resetFilters}>
+          <Text style={styles.clearAllText}>Clear All</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -209,63 +355,16 @@ export default function Feed() {
                 clearButtonMode="while-editing"
               />
             </View>
+            <TouchableOpacity
+              style={styles.filterButton}
+              onPress={() => setShowFilterModal(true)}
+            >
+              <Feather name="filter" size={20} color="#6366F1" />
+              {hasActiveFilters && <View style={styles.filterBadge} />}
+            </TouchableOpacity>
           </View>
 
-          {(selectedBrands.length > 0 ||
-            query ||
-            priceRange[0] > 0 ||
-            priceRange[1] < 5000000) && (
-            <View style={styles.activeFiltersContainer}>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.activeFiltersContent}
-              >
-                {query && (
-                  <View style={styles.activeFilterChip}>
-                    <Text style={styles.activeFilterText}>"{query}"</Text>
-                    <TouchableOpacity onPress={() => setQuery("")}>
-                      <Ionicons name="close" size={14} color="#6366F1" />
-                    </TouchableOpacity>
-                  </View>
-                )}
-
-                {selectedBrands.map((brand) => (
-                  <View key={brand} style={styles.activeFilterChip}>
-                    <Text style={styles.activeFilterText}>{brand}</Text>
-                    <TouchableOpacity onPress={() => toggleBrand(brand)}>
-                      <Ionicons name="close" size={14} color="#6366F1" />
-                    </TouchableOpacity>
-                  </View>
-                ))}
-
-                {(priceRange[0] > 0 || priceRange[1] < 5000000) && (
-                  <View style={styles.activeFilterChip}>
-                    <Text style={styles.activeFilterText}>
-                      {priceRange[0].toLocaleString()}-
-                      {priceRange[1].toLocaleString()} TL
-                    </Text>
-                    <TouchableOpacity
-                      onPress={() => setPriceRange([0, 5000000])}
-                    >
-                      <Ionicons name="close" size={14} color="#6366F1" />
-                    </TouchableOpacity>
-                  </View>
-                )}
-
-                <TouchableOpacity
-                  style={styles.clearAllButton}
-                  onPress={() => {
-                    setQuery("");
-                    setPriceRange([0, 5000000]);
-                    setSelectedBrands([]);
-                  }}
-                >
-                  <Text style={styles.clearAllText}>Tümünü Temizle</Text>
-                </TouchableOpacity>
-              </ScrollView>
-            </View>
-          )}
+          {hasActiveFilters && <ActiveFilters />}
         </View>
       </View>
 
@@ -275,6 +374,7 @@ export default function Feed() {
           <RefreshControl refreshing={loading} onRefresh={load} />
         }
       >
+        {/* Popular Brands Section */}
         <View style={styles.section}>
           <ScrollView
             horizontal
@@ -282,6 +382,23 @@ export default function Feed() {
             style={styles.brandsContainer}
             contentContainerStyle={styles.brandsContent}
           >
+            <TouchableOpacity
+              style={[
+                styles.brandChip,
+                selectedBrands.length === 0 && styles.brandChipSelected,
+              ]}
+              onPress={() => setSelectedBrands([])}
+            >
+              <Text
+                style={[
+                  styles.brandChipText,
+                  selectedBrands.length === 0 && styles.brandChipTextSelected,
+                ]}
+              >
+                All
+              </Text>
+            </TouchableOpacity>
+
             {popularBrands.map((brand) => (
               <TouchableOpacity
                 key={brand.id}
@@ -360,6 +477,7 @@ export default function Feed() {
             ))}
           </ScrollView>
         </View>
+
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>New Arrivals</Text>
@@ -373,26 +491,18 @@ export default function Feed() {
               numColumns={2}
               scrollEnabled={false}
               columnWrapperStyle={styles.columnWrapper}
-              renderItem={({ item }) => (
-                <View style={styles.cardWrapper}>
-                  <ProductCard item={item} />
-                </View>
-              )}
+              renderItem={renderProductItem}
               contentContainerStyle={styles.productsContainer}
             />
           ) : (
             <View style={styles.emptyContainer}>
               <MaterialIcons name="search-off" size={48} color="#d1d5db" />
               <Text style={styles.emptyText}>
-                Aramanıza uygun ürün bulunamadı
+                No products found matching your search
               </Text>
               <Button
-                title="Filtreleri Sıfırla"
-                onPress={() => {
-                  setQuery("");
-                  setPriceRange([0, 5000000]);
-                  setSelectedBrands([]);
-                }}
+                title="Reset Filters"
+                onPress={resetFilters}
                 variant="secondary"
                 style={styles.resetButton}
               />
@@ -400,6 +510,25 @@ export default function Feed() {
           )}
         </View>
       </ScrollView>
+
+      <FilterModal
+        visible={showFilterModal}
+        onClose={() => setShowFilterModal(false)}
+        query={query}
+        setQuery={setQuery}
+        priceRange={priceRange}
+        setPriceRange={setPriceRange}
+        selectedBrands={selectedBrands}
+        toggleBrand={toggleBrand}
+        selectedConditions={selectedConditions}
+        toggleCondition={toggleCondition}
+        selectedLocation={selectedLocation}
+        setSelectedLocation={setSelectedLocation}
+        resetFilters={resetFilters}
+        conditions={conditions}
+        locations={locations}
+      />
+
       {selectedProductId && (
         <View style={styles.detailOverlay}>
           <ProductDetail
@@ -410,309 +539,6 @@ export default function Feed() {
       )}
     </SafeAreaView>
   );
-}
+};
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#0D1118",
-  },
-  scrollView: {
-    flex: 1,
-  },
-  detailOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "#0D1118",
-    zIndex: 100,
-  },
-  header: {
-    backgroundColor: "#0D1118",
-    paddingTop: 20,
-    paddingBottom: 16,
-    paddingHorizontal: 20,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-  },
-  headerContent: {
-    gap: 12, // Boşluğu azalttım
-  },
-  searchSection: {
-    width: "100%",
-  },
-  searchInputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#1F2937",
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: "#374151",
-  },
-  searchIcon: {
-    marginRight: 12,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: "#FFFFFF",
-    padding: 0,
-  },
-  activeFiltersContainer: {
-    marginTop: 8, // Boşluğu azalttım
-  },
-  activeFiltersContent: {
-    paddingRight: 20,
-    gap: 8,
-    alignItems: "center",
-  },
-  activeFilterChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#E5E7EB",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    gap: 6,
-    marginRight: 8,
-  },
-  activeFilterText: {
-    fontSize: 12,
-    fontWeight: "500",
-    color: "#6366F1",
-  },
-  clearAllButton: {
-    backgroundColor: "#EF4444",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  clearAllText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#FFFFFF",
-  },
-  section: {
-    backgroundColor: "#0D1118",
-    marginTop: 8,
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    marginHorizontal: 8,
-    borderRadius: 16,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#FFFFFF",
-  },
-  seeAll: {
-    fontSize: 14,
-    color: "#6366f1",
-    fontWeight: "500",
-    marginRight: 10,
-  },
-  productCount: {
-    fontSize: 14,
-    color: "#9CA3AF",
-  },
-  trendBrandsContainer: {
-    flexGrow: 0,
-  },
-  trendBrandsContent: {
-    paddingRight: 16,
-    gap: 12,
-  },
-  trendBrandCard: {
-    width: 120,
-    borderRadius: 12,
-    backgroundColor: "#1F2937",
-    borderWidth: 1,
-    borderColor: "#374151",
-    overflow: "hidden",
-  },
-  trendBrandImage: {
-    width: "100%",
-    height: 80,
-  },
-  trendBrandInfo: {
-    padding: 8,
-  },
-  trendBrandName: {
-    color: "#FFFFFF",
-    fontWeight: "600",
-    fontSize: 12,
-    marginBottom: 4,
-  },
-  trendBrandCount: {
-    color: "#9CA3AF",
-    fontSize: 10,
-  },
-  brandsContainer: {
-    flexGrow: 0,
-  },
-  brandsContent: {
-    paddingRight: 16,
-  },
-  brandChip: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 25,
-    backgroundColor: "#1F2937",
-    marginRight: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "#374151",
-    minWidth: 80,
-  },
-  brandChipSelected: {
-    backgroundColor: "#6366f1",
-    borderColor: "#6366f1",
-  },
-  brandChipText: {
-    color: "#E5E7EB",
-    fontWeight: "600",
-    fontSize: 14,
-    textAlign: "center",
-  },
-  brandChipTextSelected: {
-    color: "#ffffff",
-  },
-  priceRangeContainer: {
-    flexGrow: 0,
-  },
-  priceRangeContent: {
-    paddingRight: 16,
-  },
-  priceChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: "#1F2937",
-    marginRight: 8,
-    borderWidth: 1,
-    borderColor: "#374151",
-  },
-  priceChipSelected: {
-    backgroundColor: "#6366f1",
-    borderColor: "#6366f1",
-  },
-  priceChipText: {
-    color: "#E5E7EB",
-    fontWeight: "500",
-    fontSize: 12,
-  },
-  priceChipTextSelected: {
-    color: "#fff",
-  },
-  productsContainer: {
-    paddingBottom: 24,
-  },
-  columnWrapper: {
-    justifyContent: "space-between",
-    gap: 16,
-    marginBottom: 16,
-  },
-  cardWrapper: {
-    width: CARD_WIDTH,
-  },
-  productCard: {
-    backgroundColor: "#1F2937",
-    borderRadius: 12,
-    overflow: "hidden",
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: "#374151",
-  },
-  imageContainer: {
-    position: "relative",
-    height: 150,
-  },
-  productImage: {
-    width: "100%",
-    height: "100%",
-  },
-  conditionBadge: {
-    position: "absolute",
-    top: 8,
-    right: 8,
-    backgroundColor: "rgba(0,0,0,0.7)",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
-  conditionText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  productInfo: {
-    padding: 12,
-  },
-  brandText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#FFFFFF",
-    marginBottom: 2,
-  },
-  modelText: {
-    fontSize: 12,
-    color: "#9CA3AF",
-    marginBottom: 8,
-  },
-  priceContainerCard: {
-    marginBottom: 8,
-  },
-  priceTextCard: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#10B981",
-  },
-  metaContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  dateContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  dateText: {
-    fontSize: 12,
-    color: "#9CA3AF",
-    marginLeft: 4,
-  },
-  viewsContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  viewsText: {
-    fontSize: 12,
-    color: "#9CA3AF",
-    marginLeft: 4,
-  },
-  emptyContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 48,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: "#9CA3AF",
-    marginTop: 16,
-    marginBottom: 24,
-  },
-  resetButton: {
-    alignSelf: "center",
-  },
-});
+export default Feed;
