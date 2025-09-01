@@ -61,7 +61,7 @@ const feedStyles = StyleSheet.create({
     padding: 12,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#6366F1",
+    borderColor: "#4C3BD7",
     backgroundColor: "#1F2937",
     position: "relative",
   },
@@ -85,19 +85,19 @@ const feedStyles = StyleSheet.create({
   activeFilterChip: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#1F2937",
+    backgroundColor: "#4C3BD7",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
     gap: 6,
     marginRight: 8,
     borderWidth: 1,
-    borderColor: "#6366F1",
+    borderColor: "#4C3BD7",
   },
   activeFilterText: {
     fontSize: 12,
     fontWeight: "500",
-    color: "#6366F1",
+    color: "#FFFFFF",
   },
   clearAllButton: {
     backgroundColor: "#EF4444",
@@ -131,7 +131,7 @@ const feedStyles = StyleSheet.create({
   },
   seeAll: {
     fontSize: 14,
-    color: "#6366f1",
+    color: "#B072FF",
     fontWeight: "500",
     marginRight: 10,
   },
@@ -192,8 +192,8 @@ const feedStyles = StyleSheet.create({
     minWidth: 80,
   },
   brandChipSelected: {
-    backgroundColor: "#6366f1",
-    borderColor: "#6366f1",
+    backgroundColor: "#4C3BD7",
+    borderColor: "#4C3BD7",
   },
   brandChipText: {
     color: "#E5E7EB",
@@ -223,8 +223,8 @@ const feedStyles = StyleSheet.create({
     minWidth: 110,
   },
   priceChipSelected: {
-    backgroundColor: "#6366f1",
-    borderColor: "#6366f1",
+    backgroundColor: "#4C3BD7",
+    borderColor: "#4C3BD7",
   },
   priceChipText: {
     color: "#E5E7EB",
@@ -242,6 +242,7 @@ const feedStyles = StyleSheet.create({
     justifyContent: "space-between",
     gap: 16,
     marginBottom: 16,
+    paddingRight: 4,
   },
   cardWrapper: {
     width: CARD_WIDTH,
@@ -289,6 +290,45 @@ const feedStyles = StyleSheet.create({
     fontSize: 12,
     color: "#9CA3AF",
     marginBottom: 8,
+  },
+  requestAccessContainer: {
+    marginBottom: 8,
+    alignItems: "center",
+  },
+  requestAccessText: {
+    width: 77,
+    height: 15,
+    color: "#B072FFCC",
+    fontSize: 10,
+    fontWeight: "500",
+    fontFamily: "Inter",
+    lineHeight: 15,
+    textAlign: "center",
+    verticalAlign: "middle",
+    opacity: 1,
+    marginBottom: 8,
+  },
+  watchStatusText: {
+    color: "#9CA3AF",
+    fontSize: 10,
+    fontWeight: "500",
+  },
+  watchStatusButton: {
+    width: 42,
+    height: 20,
+    backgroundColor: "#FFFFFF14",
+    paddingTop: 2,
+    paddingRight: 8,
+    paddingBottom: 2,
+    paddingLeft: 8,
+    borderRadius: 9999,
+    opacity: 1,
+  },
+  watchStatusButtonText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "600",
+    textAlign: "center",
   },
   priceContainerCard: {
     marginBottom: 8,
@@ -430,8 +470,8 @@ const feedStyles = StyleSheet.create({
     opacity: 1,
   },
   brandButtonSelected: {
-    backgroundColor: "#6366F1",
-    borderColor: "#6366F1",
+    backgroundColor: "#4C3BD7",
+    borderColor: "#4C3BD7",
   },
   brandButtonText: {
     fontSize: 14,
@@ -457,8 +497,8 @@ const feedStyles = StyleSheet.create({
     alignItems: "center",
   },
   featuredBrandChipSelected: {
-    backgroundColor: "#6366F1",
-    borderColor: "#6366F1",
+    backgroundColor: "#4C3BD7",
+    borderColor: "#4C3BD7",
   },
   featuredBrandText: {
     fontSize: 14,
@@ -491,14 +531,14 @@ const feedStyles = StyleSheet.create({
   modernSliderProgress: {
     position: "absolute",
     height: "100%",
-    backgroundColor: "#6366F1",
+    backgroundColor: "#4C3BD7",
     borderRadius: 2,
   },
   modernSliderThumb: {
     position: "absolute",
     width: 20,
     height: 20,
-    backgroundColor: "#6366F1",
+    backgroundColor: "#4C3BD7",
     borderRadius: 10,
     justifyContent: "center",
     alignItems: "center",

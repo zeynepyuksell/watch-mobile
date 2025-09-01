@@ -41,7 +41,7 @@ const DetailScreen = ({ productId, onClose }: DetailScreenProps = {}) => {
         foundProduct = products[0];
       }
 
-      setProduct(foundProduct);
+      setProduct(foundProduct || null);
     };
     loadProduct();
   }, [id, productId]);
@@ -384,6 +384,12 @@ const styles = StyleSheet.create({
     color: "#8B5CF6",
     fontSize: 14,
     fontWeight: "600",
+  },
+  watchStatusText: {
+    color: "#9CA3AF",
+    fontSize: 12,
+    fontWeight: "500",
+    textAlign: "center",
   },
   summaryContainer: {
     flexDirection: "row",

@@ -62,12 +62,20 @@ const FilterModal: React.FC<FilterModalProps> = ({
   const [modalMinPrice, setModalMinPrice] = useState(priceRange[0].toString());
   const [modalMaxPrice, setModalMaxPrice] = useState(priceRange[1].toString());
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
+  const [isDraggingMin, setIsDraggingMin] = useState(false);
+  const [isDraggingMax, setIsDraggingMax] = useState(false);
 
   useEffect(() => {
     setModalSearchQuery(query);
-    setTempPriceRange(priceRange);
-    setModalMinPrice(priceRange[0].toString());
-    setModalMaxPrice(priceRange[1].toString());
+    if (priceRange[0] === 0 && priceRange[1] === 150000) {
+      setTempPriceRange([5000, 25000]);
+      setModalMinPrice("5000");
+      setModalMaxPrice("25000");
+    } else {
+      setTempPriceRange(priceRange);
+      setModalMinPrice(priceRange[0].toString());
+      setModalMaxPrice(priceRange[1].toString());
+    }
   }, [priceRange, query, visible]);
 
   const applyFilters = (): void => {
@@ -79,51 +87,84 @@ const FilterModal: React.FC<FilterModalProps> = ({
   const handleReset = (): void => {
     resetFilters();
     setModalSearchQuery("");
-    setTempPriceRange([0, 150000]);
-    setModalMinPrice("0");
-    setModalMaxPrice("150000");
+    setTempPriceRange([5000, 25000]);
+    setModalMinPrice("5000");
+    setModalMaxPrice("25000");
     setShowLocationDropdown(false);
   };
 
   const handleMinPriceChange = (text: string): void => {
-    setModalMinPrice(text);
-    const min = Math.max(0, Math.min(parseInt(text) || 0, 150000));
+    const cleanText = text.replace(/[^0-9]/g, "");
+    setModalMinPrice(cleanText);
+
+    const min = Math.max(500, Math.min(parseInt(cleanText) || 500, 150000));
     if (min > tempPriceRange[1]) {
-      setTempPriceRange([min, 150000]);
+      setTempPriceRange([min, Math.min(150000, min + 10000)]);
     } else {
       setTempPriceRange([min, tempPriceRange[1]]);
     }
   };
 
   const handleMaxPriceChange = (text: string): void => {
-    setModalMaxPrice(text);
+    const cleanText = text.replace(/[^0-9]/g, "");
+    setModalMaxPrice(cleanText);
+
     const max = Math.max(
-      tempPriceRange[0],
-      Math.min(parseInt(text) || 150000, 150000)
+      tempPriceRange[0] + 2000,
+      Math.min(parseInt(cleanText) || 150000, 150000)
     );
     setTempPriceRange([tempPriceRange[0], max]);
   };
 
   const handleSliderMove = (event: any, containerWidth: number = 300): void => {
     const containerX = event.nativeEvent.locationX;
-    const percentage = (containerX / containerWidth) * 100;
-    const value = (percentage / 100) * 150000;
+    const percentage = Math.max(
+      0,
+      Math.min(100, (containerX / containerWidth) * 100)
+    );
+
+    const value = Math.round(((percentage / 100) * 150000) / 500) * 500;
+
+    if (isDraggingMin) {
+      const newMin = Math.min(Math.max(500, value), tempPriceRange[1] - 2000);
+      setTempPriceRange([newMin, tempPriceRange[1]]);
+      setModalMinPrice(newMin.toLocaleString());
+    } else if (isDraggingMax) {
+      const newMax = Math.max(
+        Math.min(150000, value),
+        tempPriceRange[0] + 2000
+      );
+      setTempPriceRange([tempPriceRange[0], newMax]);
+      setModalMaxPrice(newMax.toLocaleString());
+    }
+  };
+
+  const handleSliderStart = (
+    event: any,
+    containerWidth: number = 300
+  ): void => {
+    const containerX = event.nativeEvent.locationX;
+    const percentage = Math.max(
+      0,
+      Math.min(100, (containerX / containerWidth) * 100)
+    );
+    const value = Math.round(((percentage / 100) * 150000) / 500) * 500;
 
     const minDistance = Math.abs(value - tempPriceRange[0]);
     const maxDistance = Math.abs(value - tempPriceRange[1]);
 
     if (minDistance < maxDistance) {
-      const newMin = Math.min(Math.max(0, value), tempPriceRange[1] - 10000);
-      setTempPriceRange([newMin, tempPriceRange[1]]);
-      setModalMinPrice(Math.round(newMin).toString());
+      setIsDraggingMin(true);
+      setIsDraggingMax(false);
     } else {
-      const newMax = Math.max(
-        Math.min(150000, value),
-        tempPriceRange[0] + 10000
-      );
-      setTempPriceRange([tempPriceRange[0], newMax]);
-      setModalMaxPrice(Math.round(newMax).toString());
+      setIsDraggingMin(false);
+      setIsDraggingMax(true);
     }
+  };
+
+  const handleSliderEnd = (): void => {
+    setIsDraggingMin(false);
+    setIsDraggingMax(false);
   };
 
   const selectLocation = (location: string): void => {
@@ -206,8 +247,8 @@ const FilterModal: React.FC<FilterModalProps> = ({
 
               <View style={styles.sliderContainer}>
                 <Text style={styles.sliderLabel}>
-                  {tempPriceRange[0].toLocaleString()} -{" "}
-                  {tempPriceRange[1].toLocaleString()} TL
+                  ${tempPriceRange[0].toLocaleString()} - $
+                  {tempPriceRange[1].toLocaleString()}
                 </Text>
 
                 <View style={styles.modernSliderContainer}>
@@ -247,7 +288,9 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   <View
                     style={styles.sliderTouchableArea}
                     onStartShouldSetResponder={() => true}
+                    onResponderGrant={(event) => handleSliderStart(event)}
                     onResponderMove={(event) => handleSliderMove(event)}
+                    onResponderRelease={handleSliderEnd}
                   />
                 </View>
               </View>
@@ -256,13 +299,13 @@ const FilterModal: React.FC<FilterModalProps> = ({
                 <View style={styles.priceInputWrapper}>
                   <Text style={styles.priceInputLabel}>Min</Text>
                   <View style={styles.modernPriceInput}>
-                    <Text style={styles.currencySymbol}>₺</Text>
+                    <Text style={styles.currencySymbol}>$</Text>
                     <TextInput
                       value={modalMinPrice}
                       onChangeText={handleMinPriceChange}
                       keyboardType="numeric"
                       style={styles.modernPriceInputText}
-                      placeholder="0"
+                      placeholder="25000"
                       placeholderTextColor="#6B7280"
                       maxLength={6}
                     />
@@ -276,13 +319,13 @@ const FilterModal: React.FC<FilterModalProps> = ({
                 <View style={styles.priceInputWrapper}>
                   <Text style={styles.priceInputLabel}>Max</Text>
                   <View style={styles.modernPriceInput}>
-                    <Text style={styles.currencySymbol}>₺</Text>
+                    <Text style={styles.currencySymbol}>$</Text>
                     <TextInput
                       value={modalMaxPrice}
                       onChangeText={handleMaxPriceChange}
                       keyboardType="numeric"
                       style={styles.modernPriceInputText}
-                      placeholder="150000"
+                      placeholder="125000"
                       placeholderTextColor="#6B7280"
                       maxLength={6}
                     />
