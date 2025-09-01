@@ -181,7 +181,11 @@ const Feed: React.FC = () => {
   };
 
   const selectPriceRange = (min: number, max: number): void => {
-    setPriceRange([min, max]);
+    if (priceRange[0] === min && priceRange[1] === max) {
+      setPriceRange([0, 150000]);
+    } else {
+      setPriceRange([min, max]);
+    }
   };
 
   const resetFilters = (): void => {
@@ -207,9 +211,6 @@ const Feed: React.FC = () => {
             style={styles.productImage}
             resizeMode="cover"
           />
-          <View style={styles.conditionBadge}>
-            <Text style={styles.conditionText}>{item.condition}</Text>
-          </View>
         </View>
 
         <View style={styles.productInfo}>
@@ -217,6 +218,13 @@ const Feed: React.FC = () => {
           <Text style={styles.modelText} numberOfLines={1}>
             {item.model}
           </Text>
+
+          <View style={styles.requestAccessContainer}>
+            <Text style={styles.requestAccessText}>Request Access</Text>
+            <View style={styles.watchStatusButton}>
+              <Text style={styles.watchStatusButtonText}>{item.condition}</Text>
+            </View>
+          </View>
 
           <View style={styles.metaContainer}>
             <View style={styles.dateContainer}>
