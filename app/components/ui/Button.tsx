@@ -1,5 +1,6 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, TouchableOpacityProps } from 'react-native';
+import { TouchableOpacity, Text, StyleSheet, TouchableOpacityProps, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 interface ButtonProps extends TouchableOpacityProps {
   title: string;
@@ -36,6 +37,8 @@ export default function Button({
       case 'outline':
       case 'ghost':
         return styles.textOutline;
+      case 'secondary':
+        return styles.textSecondary;
       default:
         return styles.textDefault;
     }
@@ -52,41 +55,82 @@ export default function Button({
     }
   };
 
+  const renderButtonContent = () => {
+    if (variant === 'primary') {
+      return (
+        <LinearGradient
+          colors={['#4C3BD7', '#B072FF']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[
+            styles.button,
+            getSizeStyle(),
+            fullWidth && styles.fullWidth,
+            styles.gradientButton,
+          ]}
+        >
+          <Text style={[styles.text, getTextStyle()]}>
+            {title}
+          </Text>
+        </LinearGradient>
+      );
+    }
+
+    return (
+      <View style={[styles.button, getButtonStyle(), getSizeStyle(), fullWidth && styles.fullWidth]}>
+        <Text style={[styles.text, getTextStyle()]}>
+          {title}
+        </Text>
+      </View>
+    );
+  };
+
   return (
     <TouchableOpacity
-      style={[
-        styles.button,
-        getButtonStyle(),
-        getSizeStyle(),
-        fullWidth && styles.fullWidth,
-        style,
-      ]}
+      style={[style]}
       activeOpacity={0.8}
       {...props}
     >
-      <Text style={[styles.text, getTextStyle()]}>
-        {title}
-      </Text>
+      {renderButtonContent()}
     </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
   button: {
-    borderRadius: 8,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   primary: {
-    backgroundColor: '#2563eb',
+    backgroundColor: '#7C3AED',
+    shadowColor: '#7C3AED',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  gradientButton: {
+    shadowColor: '#4C3BD7',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 10,
   },
   secondary: {
-    backgroundColor: '#475569',
+    backgroundColor: '#141821',
+    borderWidth: 1,
+    borderColor: '#374151',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
   },
   outline: {
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: '#2563eb',
+    borderColor: '#6366F1',
   },
   ghost: {
     backgroundColor: 'transparent',
@@ -100,20 +144,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   large: {
-    paddingVertical: 16,
-    paddingHorizontal: 24,
+    paddingVertical: 18,
+    paddingHorizontal: 28,
   },
   fullWidth: {
     width: '100%',
   },
   text: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   textDefault: {
     color: 'white',
   },
+  textSecondary: {
+    color: '#E5E7EB',
+  },
   textOutline: {
-    color: '#2563eb',
+    color: '#6366F1',
   },
 });

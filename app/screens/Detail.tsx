@@ -1,426 +1,204 @@
 import React from "react";
 import {
-  SafeAreaView,
   View,
   Text,
   Image,
-  ScrollView,
   StyleSheet,
+  ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
-  Animated,
   Dimensions,
-  FlatList,
-  Share,
-  Alert,
+  Modal,
 } from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import { getProducts, Product } from "../api/products";
-import { Ionicons, MaterialIcons, Feather } from "@expo/vector-icons";
 
 const { width } = Dimensions.get("window");
 
-// Saat verileri - gerçek uygulamada API'den çekilecek
-const hoursData = Array.from({ length: 24 }, (_, i) => ({
-  id: `${i + 1}`,
-  hour: `${i}:00`,
-  productId: `prod-${i + 100}`,
-  // Saat kartlarında gösterilecek temel bilgiler
-  brand: "Saat Markası",
-  model: `Model ${i + 1}`,
-  price: (1000 + i * 50) * (i % 3 === 0 ? 0.9 : 1), // Fiyat varyasyonu
-  condition:
-    i % 3 === 0 ? "Yeni" : i % 3 === 1 ? "Az Kullanılmış" : "Kullanılmış",
-  image: require("../../assets/mock-images/placeholder-watch.jpg"), // Gerçek uygulamada dinamik olacak
-}));
-
-type ProductDetailProps = {
+interface DetailScreenProps {
   productId?: string;
   onClose?: () => void;
-};
+}
 
-export default function ProductDetail(props: ProductDetailProps) {
-  const { id } = useLocalSearchParams();
+const DetailScreen = ({ productId, onClose }: DetailScreenProps = {}) => {
   const router = useRouter();
+  const { id } = useLocalSearchParams();
   const [product, setProduct] = React.useState<Product | null>(null);
-  const [loading, setLoading] = React.useState(true);
-  const [activeTab, setActiveTab] = React.useState("details");
-  const [messageText, setMessageText] = React.useState("");
-  const [isFavorite, setIsFavorite] = React.useState(false);
-  const [detailsOpen, setDetailsOpen] = React.useState(true);
-  const imageScrollRef = React.useRef<ScrollView>(null);
   const [currentImageIndex, setCurrentImageIndex] = React.useState(0);
-  const images = [product?.image, product?.image, product?.image].filter(
-    Boolean
-  ) as any[];
-
-  const scrollY = new Animated.Value(0);
-
-  const conditionColor =
-    product?.condition === "Yeni"
-      ? "#10b981"
-      : product?.condition === "Az Kullanılmış"
-      ? "#f59e0b"
-      : "#6b7280";
+  const [specsOpen, setSpecsOpen] = React.useState(false);
+  const [isFullscreen, setIsFullscreen] = React.useState(false);
 
   React.useEffect(() => {
     const loadProduct = async () => {
-      try {
-        // Gerçek uygulamada API'den tek bir ürün çekilecek
-        const products = await getProducts();
-        const targetId =
-          (props.productId as string) || (id as string | undefined);
+      const products = await getProducts();
+      const actualProductId = productId || (Array.isArray(id) ? id[0] : id);
+      let foundProduct = products.find(
+        (p: Product) => p.id === actualProductId
+      );
 
-        // Önce ana ürün listesinde ara
-        let foundProduct = products.find((p) => p.id === targetId);
-
-        // Eğer ana listede bulamazsak, saat listesinde ara
-        if (!foundProduct) {
-          foundProduct = hoursData.find((p) => p.productId === targetId) as any;
-        }
-
-        setProduct(foundProduct || null);
-      } catch (error) {
-        console.error("Error loading product:", error);
-      } finally {
-        setLoading(false);
+      if (!foundProduct && products.length > 0) {
+        foundProduct = products[0];
       }
+
+      setProduct(foundProduct || null);
     };
-
-    if (props.productId || id) {
-      loadProduct();
-    }
-  }, [id, props.productId]);
-
-  const headerOpacity = scrollY.interpolate({
-    inputRange: [0, 150],
-    outputRange: [0, 1],
-    extrapolate: "clamp",
-  });
-
-  const imageOpacity = scrollY.interpolate({
-    inputRange: [0, 300],
-    outputRange: [1, 0],
-    extrapolate: "clamp",
-  });
-
-  const openProductDetail = (productId: string) => {
-    router.push(`/product-detail?id=${productId}`);
-  };
-
-  const handleSendMessage = () => {
-    if (!messageText.trim()) {
-      Alert.alert("Uyarı", "Lütfen bir mesaj yazın");
-      return;
-    }
-
-    // Gerçek uygulamada burada mesaj gönderme API'si çağrılacak
-    Alert.alert("Başarılı", "Mesajınız gönderildi");
-    setMessageText("");
-  };
-
-  const toggleFavorite = () => {
-    // Gerçek uygulamada burada favori durumu API'ye kaydedilecek
-    setIsFavorite(!isFavorite);
-    Alert.alert(isFavorite ? "Favorilerden çıkarıldı" : "Favorilere eklendi");
-  };
-
-  const handleShare = async () => {
-    try {
-      await Share.share({
-        message: `${product?.brand} ${
-          product?.model
-        } - ${product?.price.toLocaleString(
-          "tr-TR"
-        )} TL\n\nÜrün detaylarını inceleyin!`,
-        title: `${product?.brand} ${product?.model}`,
-      });
-    } catch (error) {
-      console.error("Paylaşım hatası:", error);
-    }
-  };
-
-  const renderHourItem = ({ item }: { item: any }) => (
-    <TouchableOpacity
-      style={styles.hourItem}
-      onPress={() => openProductDetail(item.productId)}
-    >
-      <View style={styles.hourInfo}>
-        <View style={styles.hourCircle}>
-          <Text style={styles.hourText}>{item.hour}</Text>
-        </View>
-        <View style={styles.hourDetails}>
-          <Text style={styles.hourBrand}>{item.brand}</Text>
-          <Text style={styles.hourModel}>{item.model}</Text>
-          <Text style={styles.hourPrice}>
-            {item.price.toLocaleString("tr-TR")} TL
-          </Text>
-          <View
-            style={[
-              styles.hourCondition,
-              {
-                backgroundColor:
-                  item.condition === "Yeni"
-                    ? "#10b98115"
-                    : item.condition === "Az Kullanılmış"
-                    ? "#f59e0b15"
-                    : "#6b728015",
-              },
-            ]}
-          >
-            <View
-              style={[
-                styles.hourConditionDot,
-                {
-                  backgroundColor:
-                    item.condition === "Yeni"
-                      ? "#10b981"
-                      : item.condition === "Az Kullanılmış"
-                      ? "#f59e0b"
-                      : "#6b7280",
-                },
-              ]}
-            />
-            <Text
-              style={[
-                styles.hourConditionText,
-                {
-                  color:
-                    item.condition === "Yeni"
-                      ? "#10b981"
-                      : item.condition === "Az Kullanılmış"
-                      ? "#f59e0b"
-                      : "#6b7280",
-                },
-              ]}
-            >
-              {item.condition}
-            </Text>
-          </View>
-        </View>
-      </View>
-      <Ionicons name="chevron-forward" size={24} color="#9ca3af" />
-    </TouchableOpacity>
-  );
-
-  // Eğer ID yoksa saat listesini göster
-  if (!id && !props.productId) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Saatler</Text>
-          <Text style={styles.subtitle}>
-            Bir saate tıklayarak ürün detayını görüntüleyin
-          </Text>
-        </View>
-
-        <FlatList
-          data={hoursData}
-          renderItem={renderHourItem}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContainer}
-        />
-      </SafeAreaView>
-    );
-  }
-
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6366f1" />
-          <Text style={styles.loadingText}>Yükleniyor...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
+    loadProduct();
+  }, [id, productId]);
 
   if (!product) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.errorContainer}>
-          <Ionicons name="alert-circle-outline" size={64} color="#ef4444" />
-          <Text style={styles.errorText}>Ürün bulunamadı</Text>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-          >
-            <Text style={styles.backButtonText}>Geri Dön</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
+      <View style={styles.container}>
+        <Text style={styles.loadingText}>Loading...</Text>
+      </View>
     );
   }
 
-  return (
-    <SafeAreaView style={styles.container}>
-      {/* Fixed Header */}
-      <Animated.View style={[styles.fixedHeader, { opacity: headerOpacity }]}>
-        <TouchableOpacity
-          style={styles.headerButton}
-          onPress={() => (props.onClose ? props.onClose() : router.back())}
-        >
-          <Ionicons name="chevron-back" size={24} color="#E5E7EB" />
-        </TouchableOpacity>
-        <Text style={styles.fixedHeaderTitle} numberOfLines={1}>
-          {product.brand} {product.model}
-        </Text>
-        <View style={styles.headerButtonPlaceholder} />
-      </Animated.View>
+  const images = [product.image, product.image, product.image, product.image];
 
+  const nextImage = () => {
+    const next = (currentImageIndex + 1) % images.length;
+    setCurrentImageIndex(next);
+  };
+
+  const prevImage = () => {
+    const prev =
+      currentImageIndex === 0 ? images.length - 1 : currentImageIndex - 1;
+    setCurrentImageIndex(prev);
+  };
+
+  return (
+    <View style={styles.container}>
       <ScrollView
         style={styles.scrollView}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: false }
-        )}
-        scrollEventThrottle={16}
+        contentContainerStyle={styles.scrollContent}
       >
-        {/* Product Images Carousel */}
-        <Animated.View
-          style={[styles.imageContainer, { opacity: imageOpacity }]}
-        >
-          <ScrollView
-            ref={imageScrollRef}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            onMomentumScrollEnd={(e) => {
-              const idx = Math.round(e.nativeEvent.contentOffset.x / width);
-              setCurrentImageIndex(idx);
+        {/* Full Screen Image Section */}
+        <View style={styles.imageSection}>
+          {/* Back Button */}
+          <TouchableOpacity
+            style={styles.backButton}
+            activeOpacity={0.8}
+            onPress={() => {
+              console.log("Back button pressed");
+              if (onClose) {
+                onClose();
+              } else {
+                try {
+                  if (router.canGoBack()) {
+                    router.back();
+                  } else {
+                    router.push("/(tabs)/feed");
+                  }
+                } catch (error) {
+                  router.push("/(tabs)/feed");
+                }
+              }
             }}
           >
-            {(images.length > 0
-              ? images
-              : [product.image, product.image, product.image]
-            ).map((imgSrc: any, idx: number) => (
-              <Image
-                key={idx}
-                source={imgSrc}
-                style={styles.productImage}
-                resizeMode="cover"
-              />
-            ))}
-          </ScrollView>
-          {/* Carousel arrows */}
-          {(images.length || 3) > 1 && (
-            <>
-              <TouchableOpacity
-                style={[styles.carouselArrow, styles.carouselArrowLeft]}
-                onPress={() => {
-                  const next = Math.max(0, currentImageIndex - 1);
-                  setCurrentImageIndex(next);
-                  imageScrollRef.current?.scrollTo({
-                    x: next * width,
-                    animated: true,
-                  });
-                }}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="chevron-back" size={22} color="#E5E7EB" />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.carouselArrow, styles.carouselArrowRight]}
-                onPress={() => {
-                  const total = images.length || 3;
-                  const next = Math.min(total - 1, currentImageIndex + 1);
-                  setCurrentImageIndex(next);
-                  imageScrollRef.current?.scrollTo({
-                    x: next * width,
-                    animated: true,
-                  });
-                }}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="chevron-forward" size={22} color="#E5E7EB" />
-              </TouchableOpacity>
-            </>
-          )}
-        </Animated.View>
+            <Ionicons name="chevron-back" size={28} color="#FFFFFF" />
+          </TouchableOpacity>
 
-        {/* Product Info */}
-        <View style={styles.infoContainer}>
-          <View style={styles.titleContainer}>
-            <Text style={styles.brand}>{product.brand}</Text>
-            <Text style={styles.model}>{product.model}</Text>
-          </View>
+          {/* Fullscreen Button */}
+          <TouchableOpacity
+            style={styles.fullscreenButton}
+            onPress={() => setIsFullscreen(true)}
+          >
+            <Ionicons name="expand" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
 
-          {/* Condition Badge */}
-          <View style={styles.conditionContainer}>
-            <View
-              style={[
-                styles.conditionBadge,
-                { backgroundColor: `${conditionColor}15` },
-              ]}
-            >
+          <Image
+            source={images[currentImageIndex]}
+            style={styles.fullScreenImage}
+            resizeMode="cover"
+          />
+
+          <TouchableOpacity
+            style={[styles.arrowButton, styles.leftArrow]}
+            onPress={prevImage}
+          >
+            <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.arrowButton, styles.rightArrow]}
+            onPress={nextImage}
+          >
+            <Ionicons name="chevron-forward" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+
+          {/* Pagination Dots */}
+          <View style={styles.pagination}>
+            {images.map((_, index) => (
               <View
+                key={index}
                 style={[
-                  styles.conditionDot,
-                  { backgroundColor: conditionColor },
+                  styles.paginationDot,
+                  index === currentImageIndex && styles.paginationDotActive,
                 ]}
               />
-              <Text style={[styles.conditionText, { color: conditionColor }]}>
-                {product.condition}
-              </Text>
-            </View>
+            ))}
+          </View>
+        </View>
+        <View style={styles.titleSection}>
+          <Text style={styles.productTitle}>
+            {product.brand} {product.model} • {2019 + parseInt(product.id)}
+          </Text>
+        </View>
+
+        <View style={styles.requestAccessContainer}>
+          <Text style={styles.requestAccessText}>Request Access</Text>
+        </View>
+
+        <View style={styles.summaryContainer}>
+          <View style={styles.summaryItem}>
+            <Ionicons name="checkmark-circle" size={20} color="#10B981" />
+            <Text style={styles.summaryLabel}>Condition</Text>
+            <Text style={styles.summaryValue}>{product.condition}</Text>
           </View>
 
-          {/* Price */}
-          <View style={styles.priceContainer}>
-            <Text style={styles.price}>
-              {product.price.toLocaleString("tr-TR")} TL
+          <View style={styles.summaryItem}>
+            <Ionicons name="checkmark-circle" size={20} color="#10B981" />
+            <Text style={styles.summaryLabel}>Box & Papers</Text>
+            <Text style={styles.summaryValue}>
+              {product.condition === "New" ? "Full Set" : "Box Only"}
             </Text>
-            <Text style={styles.priceLabel}>+ KDV</Text>
           </View>
 
-          {/* Summary Card: Only check icons, no dividers, icons left of heading */}
-          <View style={styles.summaryCard}>
-            <View style={styles.summaryItem}>
-              <View style={styles.summaryItemRow}>
-                <Ionicons name="checkmark-circle" size={18} color="#22c55e" />
-                <View>
-                  <Text style={styles.summaryLabel}>Kondisyon</Text>
-                  <Text style={styles.summaryValue}>{product.condition}</Text>
-                </View>
-              </View>
-            </View>
-            <View style={styles.summaryItem}>
-              <View style={styles.summaryItemRow}>
-                <Ionicons name="checkmark-circle" size={18} color="#22c55e" />
-                <View>
-                  <Text style={styles.summaryLabel}>Set (Box/Papers)</Text>
-                  <Text style={styles.summaryValue}>Var</Text>
-                </View>
-              </View>
-            </View>
-            <View style={styles.summaryItem}>
-              <View style={styles.summaryItemRow}>
-                <Ionicons name="checkmark-circle" size={18} color="#22c55e" />
-                <View>
-                  <Text style={styles.summaryLabel}>Garanti</Text>
-                  <Text style={styles.summaryValue}>12 Ay</Text>
-                </View>
-              </View>
-            </View>
+          <View style={styles.summaryItem}>
+            <Ionicons name="checkmark-circle" size={20} color="#10B981" />
+            <Text style={styles.summaryLabel}>Warranty</Text>
+            <Text style={styles.summaryValue}>
+              Until {2024 + parseInt(product.id)}
+            </Text>
           </View>
+        </View>
 
-          {/* Collapsible Details Header */}
+        <View style={styles.metaInfo}>
+          <Text style={styles.metaText}>Added 2d ago • 👁 324 views</Text>
+        </View>
+
+        <View
+          style={[
+            styles.specsMainContainer,
+            { height: specsOpen ? 280 : "auto" },
+          ]}
+        >
           <TouchableOpacity
-            style={styles.collapseHeader}
-            onPress={() => setDetailsOpen(!detailsOpen)}
-            activeOpacity={0.8}
+            style={styles.specsHeader}
+            activeOpacity={0.7}
+            onPress={() => setSpecsOpen(!specsOpen)}
           >
-            <Text style={styles.collapseTitle}>Özellikler</Text>
+            <Text style={styles.sectionTitle}>Specifications</Text>
             <Ionicons
-              name={detailsOpen ? "chevron-up" : "chevron-down"}
+              name={specsOpen ? "chevron-up" : "chevron-down"}
               size={20}
               color="#9CA3AF"
             />
           </TouchableOpacity>
 
-          {/* Tab Content */}
-          {detailsOpen && (
-            <View style={styles.tabContent}>
+          {specsOpen && (
+            <View style={styles.specsContent}>
               <View style={styles.specRow}>
                 <Text style={styles.specLabel}>Case</Text>
                 <Text style={styles.specValue}>Stainless Steel</Text>
@@ -431,256 +209,263 @@ export default function ProductDetail(props: ProductDetailProps) {
               </View>
               <View style={styles.specRow}>
                 <Text style={styles.specLabel}>Diameter</Text>
-                <Text style={styles.specValue}>41 mm</Text>
+                <Text style={styles.specValue}>40mm</Text>
               </View>
               <View style={styles.specRow}>
                 <Text style={styles.specLabel}>Bracelet</Text>
-                <Text style={styles.specValue}>Steel Bracelet</Text>
+                <Text style={styles.specValue}>Steel</Text>
               </View>
               <View style={styles.specRow}>
                 <Text style={styles.specLabel}>Water Resistance</Text>
-                <Text style={styles.specValue}>100 m</Text>
+                <Text style={styles.specValue}>100m</Text>
               </View>
             </View>
           )}
+        </View>
 
-          {/* Sertifika Alanı */}
-          <View style={styles.certificateBlock}>
-            <Text style={styles.certificateTitle}>Sertifika</Text>
+        {/* Custom Container Below Specs */}
+        <View style={styles.customContainerBelowSpecs}>
+          <MaterialIcons
+            name="security"
+            size={24}
+            color="#10B981"
+            style={styles.customShieldIcon}
+          />
+          <View style={styles.customTextContainer}>
+            <Text style={styles.customVerifiedTitle}>Verified Authentic</Text>
             <View style={styles.certificateRow}>
-              <Text style={styles.certificateLabel}>Orijinallik</Text>
-              <Text style={styles.certificateValue}>Sertifikalı</Text>
-            </View>
-            <View style={styles.certificateRow}>
-              <Text style={styles.certificateLabel}>Garanti</Text>
-              <Text style={styles.certificateValue}>
-                12 Ay Mağaza Garantisi
+              <Text style={styles.customCertificateId}>
+                Certificate ID: {product.brand.slice(0, 2).toUpperCase()}-
+                {product.model.slice(-4)}-{product.id.padStart(5, "0")}
               </Text>
+              <TouchableOpacity
+                onPress={() => console.log("View Certificate pressed")}
+              >
+                <Text style={styles.viewCertificateText}>View Certificate</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
+
+        <View style={styles.bottomSpacing} />
       </ScrollView>
 
-      {/* Fixed Footer: Mesaj solda, Paylaş sağda */}
+      {/* Footer */}
       <View style={styles.footer}>
-        <TouchableOpacity
-          style={styles.messageButton}
-          onPress={handleSendMessage}
-        >
-          <MaterialIcons name="chat" size={20} color="#fff" />
-          <Text style={styles.messageButtonText}>Mesaj Gönder</Text>
+        <TouchableOpacity style={styles.messageButton}>
+          <Text style={styles.messageButtonText}>Message Seller</Text>
         </TouchableOpacity>
-        <View style={styles.footerRightGroup}>
-          <TouchableOpacity style={styles.iconButton} onPress={toggleFavorite}>
-            <Ionicons
-              name={isFavorite ? "heart" : "heart-outline"}
-              size={20}
-              color={isFavorite ? "#ef4444" : "#E5E7EB"}
-            />
-          </TouchableOpacity>
 
-          <TouchableOpacity style={styles.iconButton} onPress={handleShare}>
-            <Feather name="share-2" size={20} color="#E5E7EB" />
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity style={styles.favoriteButton}>
+          <Ionicons name="heart-outline" size={24} color="#FFFFFF" />
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.shareButton}>
+          <Ionicons name="share-outline" size={24} color="#FFFFFF" />
+        </TouchableOpacity>
       </View>
-    </SafeAreaView>
+
+      {/* Fullscreen Modal */}
+      {isFullscreen && (
+        <Modal visible={isFullscreen} transparent={false}>
+          <View style={styles.fullscreenContainer}>
+            <TouchableOpacity
+              style={styles.closeFullscreenButton}
+              onPress={() => setIsFullscreen(false)}
+            >
+              <Ionicons name="close" size={28} color="#FFFFFF" />
+            </TouchableOpacity>
+            <Image
+              source={images[currentImageIndex]}
+              style={styles.fullscreenImage}
+              resizeMode="contain"
+            />
+          </View>
+        </Modal>
+      )}
+    </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0D1118",
+    backgroundColor: "#000000",
   },
-  scrollView: {
-    flex: 1,
+  loadingText: {
+    color: "#FFFFFF",
+    textAlign: "center",
+    marginTop: 100,
   },
-  fixedHeader: {
+  imageSection: {
+    width: 430,
+    height: 430,
+    position: "relative",
+    opacity: 1,
+    alignSelf: "center",
+  },
+  backButton: {
     position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: "#0D1118",
+    top: 50,
+    left: 20,
     zIndex: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: "#374151",
-  },
-  headerButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#1F2937",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  fixedHeaderTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#E5E7EB",
-    maxWidth: width - 120,
-  },
-  headerButtonPlaceholder: {
-    width: 40,
-    height: 40,
-  },
-  imageContainer: {
-    height: 380,
-    backgroundColor: "#0D1118",
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-    overflow: "hidden",
-  },
-  carouselArrow: {
-    position: "absolute",
-    top: "50%",
-    marginTop: -22,
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "#00000055",
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
+  },
+  fullScreenImage: {
+    width: "100%",
+    height: "100%",
+  },
+  arrowButton: {
+    position: "absolute",
+    top: "50%",
+    marginTop: -20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
     alignItems: "center",
     justifyContent: "center",
   },
-  carouselArrowLeft: {
-    left: 12,
+  leftArrow: {
+    left: 20,
   },
-  carouselArrowRight: {
-    right: 12,
+  rightArrow: {
+    right: 20,
   },
-  productImage: {
-    width: width,
-    height: 380,
-  },
-  infoContainer: {
-    padding: 20,
-    backgroundColor: "#0D1118",
-    marginTop: 8,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-  },
-  summaryCard: {
+  pagination: {
+    position: "absolute",
+    bottom: 20,
+    alignSelf: "center",
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#0F172A",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#374151",
+    gap: 8,
+  },
+  paginationDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "rgba(255, 255, 255, 0.4)",
+  },
+  paginationDotActive: {
+    backgroundColor: "#FFFFFF",
+  },
+  scrollView: {
+    flex: 1,
+    backgroundColor: "#000000",
+  },
+  scrollContent: {
+    paddingBottom: 20,
+  },
+  titleSection: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    alignItems: "center",
+  },
+  productTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    textAlign: "center",
     marginBottom: 16,
+  },
+
+  requestAccessContainer: {
+    marginHorizontal: 20,
+    marginBottom: 24,
+  },
+  requestAccessText: {
+    color: "#8B5CF6",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  watchStatusText: {
+    color: "#9CA3AF",
+    fontSize: 12,
+    fontWeight: "500",
+    textAlign: "center",
+  },
+  summaryContainer: {
+    flexDirection: "row",
+    backgroundColor: "#1F2937",
+    borderRadius: 12,
+    marginHorizontal: 20,
+    marginBottom: 20,
     overflow: "hidden",
   },
   summaryItem: {
     flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-  },
-  summaryItemRow: {
-    flexDirection: "row",
+    padding: 16,
     alignItems: "center",
-    gap: 10,
   },
+
   summaryLabel: {
     fontSize: 12,
     color: "#9CA3AF",
-    marginBottom: 6,
+    marginTop: 8,
+    marginBottom: 4,
+    textAlign: "center",
   },
   summaryValue: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#E5E7EB",
+    color: "#FFFFFF",
+    textAlign: "center",
   },
-  summaryDivider: {
-    width: 1,
-    backgroundColor: "#1F2937",
+  metaInfo: {
+    width: 398,
+    height: 16,
+    marginHorizontal: 16,
+    marginBottom: 24,
+    opacity: 1,
+    gap: 8,
   },
-  titleContainer: {
-    marginBottom: 16,
+  metaText: {
+    fontSize: 14,
+    color: "#6B7280",
+    textAlign: "left",
+    lineHeight: 16,
   },
-  brand: {
-    fontSize: 20,
+  specsMainContainer: {
+    width: 398,
+    backgroundColor: "#141821",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#FFFFFF0D",
+    borderTopWidth: 1,
+    borderTopColor: "#FFFFFF0D",
+    marginHorizontal: 16,
+    marginVertical: 8,
+    padding: 1,
+    opacity: 1,
+  },
+  specsHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  sectionTitle: {
+    fontSize: 18,
     fontWeight: "700",
     color: "#FFFFFF",
-    marginBottom: 4,
   },
-  model: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#9CA3AF",
-  },
-  conditionContainer: {
-    marginBottom: 16,
-  },
-  conditionBadge: {
-    flexDirection: "row",
-    alignSelf: "flex-start",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    alignItems: "center",
-  },
-  conditionDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 6,
-  },
-  conditionText: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  priceContainer: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    marginBottom: 24,
-  },
-  price: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: "#10B981",
-    marginRight: 8,
-  },
-  priceLabel: {
-    fontSize: 14,
-    color: "#9CA3AF",
-    marginBottom: 4,
-  },
-  tabContainer: {
-    flexDirection: "row",
-    borderBottomWidth: 1,
-    borderBottomColor: "#374151",
-    marginBottom: 20,
-  },
-  tab: {
+  specsContent: {
+    padding: 16,
     flex: 1,
-    paddingVertical: 12,
-    alignItems: "center",
-    borderBottomWidth: 2,
-    borderBottomColor: "transparent",
-  },
-  activeTab: {
-    borderBottomColor: "#6366f1",
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#9CA3AF",
-  },
-  activeTabText: {
-    color: "#6366f1",
-  },
-  tabContent: {
-    marginBottom: 120,
   },
   specRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 10,
+    paddingVertical: 12,
   },
   specLabel: {
     fontSize: 14,
@@ -688,260 +473,161 @@ const styles = StyleSheet.create({
   },
   specValue: {
     fontSize: 14,
-    color: "#E5E7EB",
-    fontWeight: "600",
-  },
-  collapseHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#374151",
-  },
-  collapseTitle: {
-    fontSize: 16,
-    fontWeight: "700",
     color: "#FFFFFF",
+    fontWeight: "600",
+    textAlign: "right",
+    flex: 1,
+    marginLeft: 16,
   },
-  certificateBlock: {
-    backgroundColor: "#0F172A",
-    padding: 16,
+
+  bottomSpacing: {
+    height: 8,
+  },
+  footer: {
+    flexDirection: "row",
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    backgroundColor: "#000000",
+    borderTopWidth: 1,
+    borderTopColor: "#374151",
+    alignItems: "center",
+    gap: 16,
+    minHeight: 80,
+  },
+  messageButton: {
+    flex: 1,
+    backgroundColor: "#8B5CF6",
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  messageButtonText: {
+    color: "#FFFFFF",
+    fontWeight: "600",
+    fontSize: 16,
+  },
+  favoriteButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#2D3748",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#4A5568",
+  },
+  shareButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#2D3748",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#4A5568",
+  },
+  fullscreenButton: {
+    position: "absolute",
+    top: 50,
+    right: 20,
+    zIndex: 10,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
+  },
+  fullscreenContainer: {
+    flex: 1,
+    backgroundColor: "#000000",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  closeFullscreenButton: {
+    position: "absolute",
+    top: 50,
+    right: 20,
+    zIndex: 10,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
+  },
+  fullscreenImage: {
+    width: "100%",
+    height: "100%",
+  },
+  customContainerBelowSpecs: {
+    width: 398,
+    height: 78,
+    backgroundColor: "#141821",
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#374151",
-    marginBottom: 140,
+    borderColor: "#FFFFFF0D",
+    borderTopWidth: 1,
+    borderTopColor: "#FFFFFF0D",
+    marginHorizontal: 16,
+    marginTop: 20,
+    marginBottom: 8,
+    opacity: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
   },
-  certificateTitle: {
+  customVerifiedTitle: {
+    width: 138,
+    height: 24,
+    fontFamily: "Inter",
+    fontWeight: "500",
     fontSize: 16,
-    fontWeight: "700",
+    lineHeight: 24,
     color: "#FFFFFF",
-    marginBottom: 12,
+    opacity: 1,
+    marginBottom: 4,
+  },
+  customCertificateId: {
+    width: 174,
+    height: 16,
+    fontFamily: "Inter",
+    fontWeight: "400",
+    fontSize: 12,
+    lineHeight: 16,
+    color: "#A5AEBC",
+    opacity: 1,
+  },
+  customShieldIcon: {
+    width: 24,
+    height: 24,
+    opacity: 1,
+    marginRight: 12,
+  },
+  customTextContainer: {
+    flex: 1,
   },
   certificateRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 10,
-    borderTopWidth: 1,
-    borderTopColor: "#1F2937",
   },
-  certificateLabel: {
-    fontSize: 14,
-    color: "#9CA3AF",
-  },
-  certificateValue: {
-    fontSize: 14,
-    color: "#E5E7EB",
-    fontWeight: "600",
-  },
-  detailRow: {
-    flexDirection: "row",
-    paddingVertical: 16,
-    borderBottomWidth: 0,
-    borderBottomColor: "transparent",
-    alignItems: "center",
-  },
-  detailIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#1F2937",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
-  },
-  detailTextContainer: {
-    flex: 1,
-  },
-  detailLabel: {
-    fontSize: 14,
-    color: "#9CA3AF",
-    marginBottom: 2,
-  },
-  detailValue: {
-    fontSize: 16,
-    color: "#E5E7EB",
-    fontWeight: "500",
-  },
-  descriptionBlock: {
-    paddingTop: 16,
-  },
-  descriptionTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#FFFFFF",
-    marginBottom: 8,
-  },
-  descriptionText: {
-    fontSize: 14,
-    color: "#D1D5DB",
-    lineHeight: 20,
-  },
-  comingSoon: {
+  viewCertificateText: {
+    width: 91,
+    height: 16,
+    fontFamily: "Inter",
+    fontWeight: "400",
+    fontSize: 12,
+    lineHeight: 16,
     textAlign: "center",
-    color: "#9ca3af",
-    paddingVertical: 40,
-    fontSize: 16,
-  },
-  footer: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: "#111827",
-    borderTopWidth: 1,
-    borderTopColor: "#374151",
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-  },
-  footerRightGroup: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  iconButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "#1F2937",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  messageButton: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#6366f1",
-    paddingVertical: 12,
-    marginHorizontal: 12,
-    borderRadius: 12,
-  },
-  messageButtonText: {
-    marginLeft: 8,
-    color: "#fff",
-    fontWeight: "600",
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  loadingText: {
-    fontSize: 16,
-    color: "#6b7280",
-    marginTop: 12,
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 16,
-  },
-  errorText: {
-    fontSize: 18,
-    color: "#dc2626",
-    marginTop: 16,
-    marginBottom: 24,
-  },
-  backButton: {
-    backgroundColor: "#6366f1",
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-  },
-  backButtonText: {
-    color: "#fff",
-    fontWeight: "600",
-  },
-  // Saat listesi stilleri
-  header: {
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: "#374151",
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#FFFFFF",
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "#9CA3AF",
-  },
-  listContainer: {
-    padding: 16,
-  },
-  hourItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: "#1F2937",
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#374151",
-  },
-  hourInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  },
-  hourCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: "#6366f115",
-    alignItems: "center",
-    justifyContent: "center",
+    color: "#B072FFCC",
+    opacity: 1,
     marginRight: 16,
   },
-  hourText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#6366f1",
-  },
-  hourDetails: {
-    flex: 1,
-  },
-  hourBrand: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#FFFFFF",
-    marginBottom: 2,
-  },
-  hourModel: {
-    fontSize: 14,
-    color: "#9CA3AF",
-    marginBottom: 4,
-  },
-  hourPrice: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#10B981",
-    marginBottom: 4,
-  },
-  hourCondition: {
-    flexDirection: "row",
-    alignSelf: "flex-start",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    alignItems: "center",
-  },
-  hourConditionDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginRight: 4,
-  },
-  hourConditionText: {
-    fontSize: 12,
-    fontWeight: "500",
-  },
 });
+
+export default DetailScreen;
