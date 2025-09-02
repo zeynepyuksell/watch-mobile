@@ -1,11 +1,12 @@
 import React from "react";
-import { View, Text, Image, Dimensions, TouchableOpacity } from "react-native";
+import { View, Text, Image, Dimensions, TouchableOpacity, ScrollView, useWindowDimensions } from "react-native";
 import PagerView from "react-native-pager-view";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 
-const W = Dimensions.get("window").width;
-const H = Dimensions.get("window").height;
+const DONE_KEY = "onboarding_done";
 
 const SCREEN = [
   {
@@ -34,16 +35,21 @@ const SCREEN = [
   },
 ];
 
-const DONE_KEY = "onboarding_done";
-
 export default function Onboarding() {
   const pagerRef = React.useRef<PagerView>(null);
   const [index, setIndex] = React.useState(0);
   const last = index === SCREEN.length - 1;
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+
+  // Responsive boyutlar
+  const imageSize = Math.min(screenWidth - 40, screenHeight * 0.4);
+  const paddingHorizontal = Math.max(20, screenWidth * 0.05);
+  const paddingTop = Math.max(12, insets.top + 8);
 
   const complete = async () => {
     await AsyncStorage.setItem(DONE_KEY, "1");
-    router.replace("/(tabs)/feed");
+    router.replace("/signin");
   };
 
   return (
@@ -51,13 +57,17 @@ export default function Onboarding() {
       style={{
         flex: 1,
         backgroundColor: "#0D1118",
-        paddingHorizontal: 20,
-        paddingTop: 12,
+        paddingTop: paddingTop,
       }}
     >
       <TouchableOpacity
         onPress={complete}
-        style={{ alignSelf: "flex-end", padding: 8 }}
+        style={{ 
+          alignSelf: "flex-end", 
+          padding: 8,
+          paddingRight: paddingHorizontal,
+          paddingTop: 8
+        }}
       >
         <Text style={{ color: "#9AA5FF" }}>Skip</Text>
       </TouchableOpacity>
@@ -69,32 +79,44 @@ export default function Onboarding() {
         onPageSelected={(e) => setIndex(e.nativeEvent.position)}
       >
         {SCREEN.map((s) => (
-          <View key={s.id} style={{ flex: 1, alignItems: "center" }}>
+          <ScrollView 
+            key={s.id} 
+            style={{ flex: 1 }}
+            contentContainerStyle={{ 
+              flexGrow: 1,
+              alignItems: "center",
+              paddingHorizontal: paddingHorizontal,
+              paddingBottom: 20
+            }}
+            showsVerticalScrollIndicator={false}
+          >
             <View
               style={{
-                width: W - 80,
-                height: W - 80,
+                width: imageSize,
+                height: imageSize,
                 borderRadius: 18,
                 overflow: "hidden",
-                paddingTop: 32,
-                paddingBottom: 32
+                marginTop: 20,
+                marginBottom: 20
               }}
             >
               <Image
                 source={s.image}
                 style={{ width: "100%", height: "100%" }}
+                resizeMode="cover"
               />
             </View>
 
             <Text
               style={{
                 color: "white",
-                fontSize: 24,
+                fontSize: Math.min(24, screenWidth * 0.06),
                 fontWeight: "700",
                 textAlign: "center",
                 width: "100%",
-                marginTop: 28,
-                lineHeight: 32
+                marginTop: 20,
+                lineHeight: Math.min(32, screenWidth * 0.08),
+                paddingHorizontal: 10
               }}
             >
               {s.title}
@@ -102,10 +124,12 @@ export default function Onboarding() {
             <Text
               style={{
                 color: "#A1A1AA",
-                fontSize: 14,
-                lineHeight: 20,
+                fontSize: Math.min(14, screenWidth * 0.035),
+                lineHeight: Math.min(20, screenWidth * 0.05),
                 marginTop: 12,
                 width: "100%",
+                textAlign: "center",
+                paddingHorizontal: 10
               }}
             >
               {s.subtitle}
@@ -113,31 +137,66 @@ export default function Onboarding() {
 
             {/* İsteğe bağlı chips */}
             {s.chips?.length ? (
-              <View style={{ flexDirection: "row", gap: 20, marginTop: 18 }}>
-                {s.chips.map((c) => (
-                  <View key={c} style={{ alignItems: "center" }}>
-                    <View
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: 18,
-                        backgroundColor: "#1F2430",
-                        justifyContent: "center",
-                        alignItems: "center",
-                      }}
-                    />
-                    <Text
-                      style={{ color: "#9CA3AF", fontSize: 12, marginTop: 6 }}
-                    >
-                      {c}
-                    </Text>
-                  </View>
-                ))}
+              <View style={{ 
+                flexDirection: "row", 
+                gap: Math.min(20, screenWidth * 0.05), 
+                marginTop: 18,
+                flexWrap: "wrap",
+                justifyContent: "center"
+              }}>
+                {s.chips.map((c) => {
+                  let iconName = "";
+                  let iconColor = "#A78BFA";
+                  
+                  // Icon mapping
+                  if (c === "Save") {
+                    iconName = "heart";
+                  } else if (c === "Messages") {
+                    iconName = "chatbubble";
+                  } else if (c === "Offers") {
+                    iconName = "pricetag";
+                  } else if (c === "AI Autofill") {
+                    iconName = "sparkles";
+                    iconColor = "#7C4DFF";
+                  } else if (c === "Escrow & Tracking") {
+                    iconName = "shield-checkmark";
+                    iconColor = "#7C4DFF";
+                  }
+                  
+                  return (
+                    <View key={c} style={{ alignItems: "center", marginBottom: 10 }}>
+                      <View
+                        style={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: 18,
+                          backgroundColor: "#1F2430",
+                          justifyContent: "center",
+                          alignItems: "center",
+                        }}
+                      >
+                        {iconName ? (
+                          <Ionicons name={iconName as any} size={18} color={iconColor} />
+                        ) : null}
+                      </View>
+                      <Text
+                        style={{ color: "#9CA3AF", fontSize: 12, marginTop: 6 }}
+                      >
+                        {c}
+                      </Text>
+                    </View>
+                  );
+                })}
               </View>
             ) : null}
 
             {/* Dots */}
-            <View style={{ flexDirection: "row", gap: 6, marginTop: 18 }}>
+            <View style={{ 
+              flexDirection: "row", 
+              gap: 6, 
+              marginTop: 18,
+              marginBottom: 20
+            }}>
               {SCREEN.map((_, i) => (
                 <View
                   key={i}
@@ -150,7 +209,7 @@ export default function Onboarding() {
                 />
               ))}
             </View>
-          </View>
+          </ScrollView>
         ))}
       </PagerView>
 
@@ -164,7 +223,8 @@ export default function Onboarding() {
           }
         }}
         style={{
-          marginBottom: 24,
+          marginBottom: Math.max(24, insets.bottom + 16),
+          marginHorizontal: paddingHorizontal,
           height: 56,
           borderRadius: 28,
           backgroundColor: "#7C4DFF",
