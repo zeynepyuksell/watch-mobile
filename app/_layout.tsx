@@ -33,7 +33,12 @@ export default function RootLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       {!isOnboardingComplete
         ? <Stack.Screen name="onboarding" />
-        : <Stack.Screen name="(tabs)" />}
+        : (
+          <>
+            <Stack.Screen name="signin" />
+            <Stack.Screen name="(tabs)" />
+          </>
+        )}
     </Stack>
   );
 }
