@@ -19,8 +19,8 @@ export default function SignIn() {
   const paddingTop = Math.max(12, insets.top + 8);
 
   const handleSignIn = () => {
-    // Sign in logic here
-    console.log("Sign in:", { email, phone, password });
+    // Geçici giriş - backend olmadığı için doğrulama sayfasına yönlendir
+    router.push("/verify-code");
   };
 
   const handleForgotPassword = () => {
@@ -275,6 +275,25 @@ export default function SignIn() {
           </LinearGradient>
         </TouchableOpacity>
 
+        {/* Skip Login Button */}
+        <TouchableOpacity
+          onPress={() => router.replace("/(tabs)/feed")}
+          style={{
+            height: 48,
+            borderRadius: 24,
+            backgroundColor: "transparent",
+            borderWidth: 1,
+            borderColor: "#374151",
+            justifyContent: "center",
+            alignItems: "center",
+            marginBottom: 20
+          }}
+        >
+          <Text style={{ color: "#9CA3AF", fontWeight: "600", fontSize: 16 }}>
+            Giriş yapmadan devam et
+          </Text>
+        </TouchableOpacity>
+
         {/* Additional Info */}
         <View style={{ alignItems: "center", marginBottom: 20 }}>
           <Text style={{
@@ -284,12 +303,21 @@ export default function SignIn() {
             lineHeight: 20,
             marginBottom: 16
           }}>
-            Yeni cihazlarda 2 adımlı doğrulama
+            
           </Text>
           
           <TouchableOpacity onPress={handleInviteCode}>
             <Text style={{ color: "#A78BFA", fontSize: 14, fontWeight: "500" }}>
               Bir invite kodunuz var mı?
+            </Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            onPress={() => router.push("/register")}
+            style={{ marginTop: 16 }}
+          >
+            <Text style={{ color: "#A78BFA", fontSize: 16, fontWeight: "600" }}>
+              Kayıt Ol
             </Text>
           </TouchableOpacity>
         </View>
