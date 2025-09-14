@@ -49,7 +49,7 @@ const feedStyles = StyleSheet.create({
     flex: 1,
   },
   searchIcon: {
-    marginRight: 12,
+    marginRight: 13,
   },
   searchInput: {
     flex: 1,
