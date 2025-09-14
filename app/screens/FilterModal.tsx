@@ -65,18 +65,21 @@ const FilterModal: React.FC<FilterModalProps> = ({
   const [isDraggingMin, setIsDraggingMin] = useState(false);
   const [isDraggingMax, setIsDraggingMax] = useState(false);
 
+  // Optimize: Only sync when modal becomes visible
   useEffect(() => {
-    setModalSearchQuery(query);
-    if (priceRange[0] === 0 && priceRange[1] === 150000) {
-      setTempPriceRange([5000, 25000]);
-      setModalMinPrice("5000");
-      setModalMaxPrice("25000");
-    } else {
-      setTempPriceRange(priceRange);
-      setModalMinPrice(priceRange[0].toString());
-      setModalMaxPrice(priceRange[1].toString());
+    if (visible) {
+      setModalSearchQuery(query);
+      if (priceRange[0] === 0 && priceRange[1] === 150000) {
+        setTempPriceRange([5000, 25000]);
+        setModalMinPrice("5000");
+        setModalMaxPrice("25000");
+      } else {
+        setTempPriceRange(priceRange);
+        setModalMinPrice(priceRange[0].toString());
+        setModalMaxPrice(priceRange[1].toString());
+      }
     }
-  }, [priceRange, query, visible]);
+  }, [visible, query, priceRange]);
 
   const applyFilters = (): void => {
     setPriceRange(tempPriceRange);
