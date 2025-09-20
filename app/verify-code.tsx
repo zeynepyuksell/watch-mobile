@@ -5,6 +5,43 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 
+// OtpInput bileşenini dışarı taşıdık
+const OtpInput = ({ value, onChangeText, onKeyPress, index, inputRefs }: {
+  value: string;
+  onChangeText: (text: string) => void;
+  onKeyPress: (key: string) => void;
+  index: number;
+  inputRefs: React.MutableRefObject<TextInput[]>;
+}) => (
+  <TextInput
+    ref={(ref) => {
+      if (ref) inputRefs.current[index] = ref;
+    }}
+    value={value}
+    onChangeText={onChangeText}
+    onKeyPress={({ nativeEvent }) => onKeyPress(nativeEvent.key)}
+    style={{
+      width: 60,
+      height: 60,
+      backgroundColor: "#1F2430",
+      borderRadius: 12,
+      textAlign: "center",
+      fontSize: 24,
+      fontWeight: "600",
+      color: "white",
+      borderWidth: 1,
+      borderColor: value ? "#7C4DFF" : "#374151",
+    }}
+    keyboardType="numeric"
+    maxLength={1}
+    selectTextOnFocus={true}
+    autoFocus={index === 0}
+    editable={true}
+    onFocus={() => {}}
+    onBlur={() => {}}
+  />
+);
+
 export default function VerifyCode() {
   const [otp, setOtp] = useState(["", "", "", ""]);
   const [resendCountdown, setResendCountdown] = useState(30);
@@ -18,7 +55,7 @@ export default function VerifyCode() {
   const paddingTop = Math.max(12, insets.top + 8);
 
   useEffect(() => {
-    let timer: NodeJS.Timeout;
+    let timer: ReturnType<typeof setTimeout>;
     if (resendCountdown > 0) {
       timer = setTimeout(() => {
         setResendCountdown(resendCountdown - 1);
@@ -53,8 +90,8 @@ export default function VerifyCode() {
     const otpCode = otp.join("");
     if (otpCode.length === 4) {
       console.log("Verification code:", otpCode);
-      // Backend olmadığı için geçici olarak ana sayfaya yönlendir
-      router.replace("/(tabs)/feed");
+      // Doğrulama sonrası kullanıcı tercihleri sayfasına yönlendir
+      router.replace("/user-preferences");
     }
   };
 
@@ -71,40 +108,6 @@ export default function VerifyCode() {
     router.back();
   };
 
-  const OtpInput = ({ value, onChangeText, onKeyPress, index }: {
-    value: string;
-    onChangeText: (text: string) => void;
-    onKeyPress: (key: string) => void;
-    index: number;
-  }) => (
-    <TextInput
-      ref={(ref) => {
-        if (ref) inputRefs.current[index] = ref;
-      }}
-      value={value}
-      onChangeText={onChangeText}
-      onKeyPress={({ nativeEvent }) => onKeyPress(nativeEvent.key)}
-      style={{
-        width: 60,
-        height: 60,
-        backgroundColor: "#1F2430",
-        borderRadius: 12,
-        textAlign: "center",
-        fontSize: 24,
-        fontWeight: "600",
-        color: "white",
-        borderWidth: 1,
-        borderColor: value ? "#7C4DFF" : "#374151",
-      }}
-      keyboardType="numeric"
-      maxLength={1}
-      selectTextOnFocus={true}
-      autoFocus={index === 0}
-      editable={true}
-      onFocus={() => {}}
-      onBlur={() => {}}
-    />
-  );
 
   return (
     <View style={{ flex: 1, backgroundColor: "#0D1118" }}>
@@ -174,6 +177,7 @@ export default function VerifyCode() {
               onChangeText={(text) => handleOtpChange(text, index)}
               onKeyPress={(key) => handleKeyPress(key, index)}
               index={index}
+              inputRefs={inputRefs}
             />
           ))}
         </View>

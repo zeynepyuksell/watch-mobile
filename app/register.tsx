@@ -6,6 +6,99 @@ import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { getCities, City } from "./data/mockData";
 
+// 👇 PROP TÜRLERİNİ TANIMLAYIN
+// Eğer InputField başka dosyadaysa, bu tanımı o dosyanın başına ekleyebilirsiniz.
+interface InputFieldProps {
+  label: string;
+  placeholder: string;
+  value: string;
+  onChangeText: (text: string) => void;
+  icon: string;
+  keyboardType?: "default" | "email-address" | "phone-pad";
+  secureTextEntry?: boolean;
+  showPasswordToggle?: boolean;
+  error?: string;
+  rightIcon?: string;
+  onRightIconPress?: () => void;
+  onTogglePasswordVisibility?: () => void;
+}
+
+// 👇 InputField bileşenini Register bileşeninin dışına taşıyın
+const InputField: React.FC<InputFieldProps> = ({ 
+    label, 
+    placeholder, 
+    value, 
+    onChangeText, 
+    icon, 
+    keyboardType = "default",
+    secureTextEntry = false,
+    showPasswordToggle = false,
+    error,
+    rightIcon,
+    onRightIconPress,
+    onTogglePasswordVisibility // Yeni eklenen prop
+  }) => (
+    <View style={{ marginBottom: 20 }}>
+      <Text style={{
+        color: "#9CA3AF",
+        fontSize: 14,
+        marginBottom: 8,
+        fontWeight: "500"
+      }}>
+        {label}
+      </Text>
+      <View style={{
+        backgroundColor: "#1F2430",
+        borderRadius: 12,
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: 16,
+        paddingVertical: 16,
+        borderWidth: error ? 1 : 0,
+        borderColor: error ? "#EF4444" : "transparent"
+      }}
+      pointerEvents="box-none"
+      >
+        <Ionicons name={icon as any} size={20} color="#6B7280" style={{ marginRight: 12 }} />
+        <TextInput
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor="#6B7280"
+          style={{
+            flex: 1,
+            color: "white",
+            fontSize: 16
+          }}
+          keyboardType={keyboardType}
+          secureTextEntry={secureTextEntry}
+          autoCapitalize="none"
+        />
+        {showPasswordToggle && (
+          <TouchableOpacity onPress={onTogglePasswordVisibility}>
+            <Ionicons 
+              name={secureTextEntry ? "eye-off" : "eye"} 
+              size={20} 
+              color="#6B7280" 
+            />
+          </TouchableOpacity>
+        )}
+        {rightIcon && (
+          <TouchableOpacity onPress={onRightIconPress}>
+            <Ionicons name={rightIcon as any} size={20} color="#6B7280" />
+          </TouchableOpacity>
+        )}
+      </View>
+      {error && (
+        <Text style={{ color: "#EF4444", fontSize: 12, marginTop: 4 }}>
+          {error}
+        </Text>
+      )}
+    </View>
+  );
+
+// -------------------------------------------------------------------
+
 export default function Register() {
   const [formData, setFormData] = useState({
     fullName: "",
@@ -44,7 +137,6 @@ export default function Register() {
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: "" }));
     }
@@ -91,7 +183,6 @@ export default function Register() {
 
   const handleRegister = () => {
     if (validateForm()) {
-      // Backend olmadığı için geçici olarak doğrulama sayfasına yönlendir
       console.log("Register data:", { ...formData, city: selectedCity });
       router.push("/verify-code");
     }
@@ -104,95 +195,6 @@ export default function Register() {
       setErrors(prev => ({ ...prev, city: "" }));
     }
   };
-
-  const InputField = ({ 
-    label, 
-    placeholder, 
-    value, 
-    onChangeText, 
-    icon, 
-    keyboardType = "default",
-    secureTextEntry = false,
-    showPasswordToggle = false,
-    error,
-    rightIcon,
-    onRightIconPress
-  }: {
-    label: string;
-    placeholder: string;
-    value: string;
-    onChangeText: (text: string) => void;
-    icon: string;
-    keyboardType?: "default" | "email-address" | "phone-pad";
-    secureTextEntry?: boolean;
-    showPasswordToggle?: boolean;
-    error?: string;
-    rightIcon?: string;
-    onRightIconPress?: () => void;
-  }) => (
-    <View style={{ marginBottom: 20 }}>
-      <Text style={{
-        color: "#9CA3AF",
-        fontSize: 14,
-        marginBottom: 8,
-        fontWeight: "500"
-      }}>
-        {label}
-      </Text>
-      <View style={{
-        backgroundColor: "#1F2430",
-        borderRadius: 12,
-        flexDirection: "row",
-        alignItems: "center",
-        paddingHorizontal: 16,
-        paddingVertical: 16,
-        borderWidth: error ? 1 : 0,
-        borderColor: error ? "#EF4444" : "transparent"
-      }}
-      pointerEvents="box-none"
-      >
-        <Ionicons name={icon as any} size={20} color="#6B7280" style={{ marginRight: 12 }} />
-        <TextInput
-          value={value}
-          onChangeText={onChangeText}
-          placeholder={placeholder}
-          placeholderTextColor="#6B7280"
-          style={{
-            flex: 1,
-            color: "white",
-            fontSize: 16
-          }}
-          keyboardType={keyboardType}
-          secureTextEntry={secureTextEntry}
-          autoCapitalize="none"
-          editable={true}
-          autoFocus={false}
-          blurOnSubmit={false}
-          returnKeyType="next"
-          multiline={false}
-        />
-        {showPasswordToggle && (
-          <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-            <Ionicons 
-              name={showPassword ? "eye-off" : "eye"} 
-              size={20} 
-              color="#6B7280" 
-            />
-          </TouchableOpacity>
-        )}
-        {rightIcon && (
-          <TouchableOpacity onPress={onRightIconPress}>
-            <Ionicons name={rightIcon as any} size={20} color="#6B7280" />
-          </TouchableOpacity>
-        )}
-      </View>
-      {error && (
-        <Text style={{ color: "#EF4444", fontSize: 12, marginTop: 4 }}>
-          {error}
-        </Text>
-      )}
-    </View>
-  );
 
   return (
     <View style={{ flex: 1, backgroundColor: "#0D1118" }}>
@@ -360,11 +362,7 @@ export default function Register() {
                 fontSize: 16
               }}
               keyboardType="phone-pad"
-              editable={true}
-              autoFocus={false}
-              blurOnSubmit={false}
-              returnKeyType="next"
-              multiline={false}
+              autoCapitalize="none"
             />
           </View>
           {errors.phone && (
@@ -401,6 +399,7 @@ export default function Register() {
           icon="lock-closed-outline"
           secureTextEntry={!showPassword}
           showPasswordToggle={true}
+          onTogglePasswordVisibility={() => setShowPassword(!showPassword)}
           error={errors.password}
         />
 
