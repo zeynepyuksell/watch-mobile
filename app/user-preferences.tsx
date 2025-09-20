@@ -232,7 +232,7 @@ export default function UserPreferences() {
           />
         </View>
         <Text style={{ color: "#9CA3AF", fontSize: 14, textAlign: "center" }}>
-          Do not know this pagee
+          Do not know this page
         </Text>
       </View>
 
