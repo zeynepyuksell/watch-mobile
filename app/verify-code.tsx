@@ -90,8 +90,8 @@ export default function VerifyCode() {
     const otpCode = otp.join("");
     if (otpCode.length === 4) {
       console.log("Verification code:", otpCode);
-      // Backend olmadığı için geçici olarak ana sayfaya yönlendir
-      router.replace("/(tabs)/feed");
+      // Doğrulama sonrası kullanıcı tercihleri ekranına yönlendir
+      router.replace("/user-preferences");
     }
   };
 
