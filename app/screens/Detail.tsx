@@ -1,4 +1,5 @@
 import React from "react";
+import { useRouter } from "expo-router";
 import {
   View,
   Text,
@@ -10,7 +11,6 @@ import {
   Modal,
 } from "react-native";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
 import { useLocalSearchParams } from "expo-router";
 import { getProducts, Product } from "../api/products";
 
@@ -73,9 +73,7 @@ const DetailScreen = ({ productId, onClose }: DetailScreenProps = {}) => {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Full Screen Image Section */}
         <View style={styles.imageSection}>
-          {/* Back Button */}
           <TouchableOpacity
             style={styles.backButton}
             activeOpacity={0.8}
@@ -99,7 +97,6 @@ const DetailScreen = ({ productId, onClose }: DetailScreenProps = {}) => {
             <Ionicons name="chevron-back" size={28} color="#FFFFFF" />
           </TouchableOpacity>
 
-          {/* Fullscreen Button */}
           <TouchableOpacity
             style={styles.fullscreenButton}
             onPress={() => setIsFullscreen(true)}
@@ -127,7 +124,6 @@ const DetailScreen = ({ productId, onClose }: DetailScreenProps = {}) => {
             <Ionicons name="chevron-forward" size={24} color="#FFFFFF" />
           </TouchableOpacity>
 
-          {/* Pagination Dots */}
           <View style={styles.pagination}>
             {images.map((_, index) => (
               <View
@@ -223,7 +219,6 @@ const DetailScreen = ({ productId, onClose }: DetailScreenProps = {}) => {
           )}
         </View>
 
-        {/* Custom Container Below Specs */}
         <View style={styles.customContainerBelowSpecs}>
           <MaterialIcons
             name="security"
@@ -247,12 +242,57 @@ const DetailScreen = ({ productId, onClose }: DetailScreenProps = {}) => {
           </View>
         </View>
 
+        {product.seller && (
+          <View style={styles.profilePhotoContainer}>
+            <Image
+              source={product.seller?.profileImage}
+              style={styles.profilePhoto}
+              resizeMode="cover"
+            />
+            <View style={styles.sellerInfoContainer}>
+              <TouchableOpacity
+                onPress={() =>
+                  router.push(
+                    `/seller-profile?sellerId=${
+                      product.seller?.name || "default"
+                    }`
+                  )
+                }
+              >
+                <Text style={styles.sellerName}>{product.seller?.name}</Text>
+              </TouchableOpacity>
+              <View style={styles.ratingContainer}>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Ionicons
+                    key={star}
+                    name={
+                      star <= Math.floor(product.seller?.rating || 0)
+                        ? "star"
+                        : "star-outline"
+                    }
+                    size={13}
+                    color="#FFFFFF"
+                    style={styles.starIcon}
+                  />
+                ))}
+                <Text style={styles.ratingText}>{product.seller?.rating}</Text>
+              </View>
+            </View>
+          </View>
+        )}
+
         <View style={styles.bottomSpacing} />
       </ScrollView>
 
-      {/* Footer */}
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.messageButton}>
+        <TouchableOpacity
+          style={styles.messageButton}
+          onPress={() =>
+            router.push(
+              `/seller-profile?sellerId=${product.seller?.name || "default"}`
+            )
+          }
+        >
           <Text style={styles.messageButtonText}>Message Seller</Text>
         </TouchableOpacity>
 
@@ -265,7 +305,6 @@ const DetailScreen = ({ productId, onClose }: DetailScreenProps = {}) => {
         </TouchableOpacity>
       </View>
 
-      {/* Fullscreen Modal */}
       {isFullscreen && (
         <Modal visible={isFullscreen} transparent={false}>
           <View style={styles.fullscreenContainer}>
@@ -627,6 +666,57 @@ const styles = StyleSheet.create({
     color: "#B072FFCC",
     opacity: 1,
     marginRight: 16,
+  },
+  profilePhotoContainer: {
+    width: 398,
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 8,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  profilePhoto: {
+    width: 55,
+    height: 55,
+    borderRadius: 9999,
+    marginRight: 12,
+  },
+  sellerInfoContainer: {
+    flex: 1,
+  },
+  sellerName: {
+    width: 133,
+    height: 20,
+    fontFamily: "Inter",
+    fontWeight: "500",
+    fontStyle: "normal",
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#FFFFFF",
+    textAlignVertical: "center",
+    marginBottom: 4,
+  },
+  ratingContainer: {
+    width: 62.734375,
+    height: 16,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  starIcon: {
+    marginRight: 2,
+  },
+  ratingText: {
+    width: 18,
+    height: 16,
+    fontFamily: "Inter",
+    fontWeight: "400",
+    fontStyle: "normal",
+    fontSize: 12,
+    lineHeight: 16,
+    color: "#FFFFFF",
+    textAlignVertical: "center",
+    marginLeft: 4,
+    textAlign: "center",
   },
 });
 
