@@ -12,7 +12,12 @@
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.watch-mobile-app"
+      "bundleIdentifier": "com.anonymous.watch-mobile-app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Profil fotoğrafı çekmek için kamera erişimine ihtiyaç duyuyoruz.",
+        "NSPhotoLibraryUsageDescription": "Profil fotoğrafı seçmek için fotoğraf arşivine erişim gerekiyor.",
+        "NSPhotoLibraryAddUsageDescription": "Seçtiğiniz görselleri kaydetmek için fotoğraf arşivine yazma izni gerekiyor."
+      }
     },
     "android": {
       "adaptiveIcon": {
